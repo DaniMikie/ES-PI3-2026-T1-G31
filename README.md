@@ -48,16 +48,43 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 ## Estrutura do Projeto
 
 ```
-MesclaInvest
+    PI3/
 │
-├── mobile
-│   └── Aplicação Flutter (interface do usuário)
+├── .git/                          # Controle de versão Git
+│   ├── hooks/
+│   ├── info/
+│   ├── logs/
+│   ├── objects/
+│   ├── refs/
+│   └── [arquivos de configuração do Git]
 │
-├── backend
-│   └── API Node.js responsável pelas regras de negócio
+├── backend/                       # API Node.js + TypeScript
+│   ├── node_modules/             # Dependências instaladas (npm)
+│   │   └── [270+ pacotes]
+│   │
+│   ├── src/                      # Código-fonte
+│   │   ├── config/              # Configurações
+│   │   ├── controllers/         # Controladores
+│   │   ├── middlewares/         # Middlewares
+│   │   ├── models/              # Modelos de dados
+│   │   ├── routes/              # Rotas da API
+│   │   ├── services/            # Serviços/lógica de negócio
+│   │   ├── utils/               # Utilitários
+│   │   └── server.ts            # Servidor Express inicial configurado
+│   │
+│   ├── .env                      # Variáveis de ambiente (PORT=3000)
+│   ├── .gitignore               # Arquivos ignorados pelo Git
+│   ├── package.json             # Dependências e scripts npm
+│   ├── package-lock.json        # Lock de versões
+│   └── tsconfig.json            # Configuração TypeScript
 │
-└── database
-    └── Configuração e integração com Firebase Firestore
+├── database/                     # database
+|
+├── mobile/                       # Aplicação Flutter
+│
+├── .gitignore                    # Git ignore raiz
+└── README.md                     # Documentação do projeto
+
 ```
 
 ---
