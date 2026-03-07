@@ -2,7 +2,7 @@
 
 ## Sobre o Projeto
 
-O **MesclaInvest** é um aplicativo mobile desenvolvido para a disciplina **Projeto Integrador 3 ** do curso de **Engenharia de Software da PUC-Campinas**.
+O **MesclaInvest** é um aplicativo mobile desenvolvido para a disciplina **Projeto Integrador 3** do curso de **Engenharia de Software da PUC-Campinas**.
 
 A aplicação simula uma plataforma digital de investimento em **startups vinculadas ao Mescla**, permitindo que usuários acompanhem projetos, interajam com empreendedores e realizem **negociações simuladas de tokens**.
 
