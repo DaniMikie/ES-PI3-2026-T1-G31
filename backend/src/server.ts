@@ -1,7 +1,7 @@
 /**
  * Arquivo: server.ts
- * Autor: [Seu Nome Completo]
- * RA: [Seu RA]
+ * Autor: [Daniela Mikie Kikuchi Gonçalves]
+ * RA: [25003068]
  * Descrição: Servidor principal da API MesclaInvest
  */
 
@@ -29,7 +29,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
 
 export default app;
