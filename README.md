@@ -115,7 +115,7 @@ npm run dev
 
 ## Integrantes
 
-* Ana Luísa Maso Mafra – RA
+* Ana Luísa Maso Mafra – RA 25007997
 * Daniela Mikie Kikuchi Gonçalves – 25003068
 * Felipe Nasser Coelho Moussa – 25004922
 * Rafaela Jacobsen Braga – RA
