@@ -118,7 +118,7 @@ npm run dev
 * Ana Luísa Maso Mafra – RA 25007997
 * Daniela Mikie Kikuchi Gonçalves – 25003068
 * Felipe Nasser Coelho Moussa – 25004922
-* Rafaela Jacobsen Braga – RA
+* Rafaela Jacobsen Braga – 25004280
 * Kauan Aurelio Lasmar Dias – 25001590
 
 ---
