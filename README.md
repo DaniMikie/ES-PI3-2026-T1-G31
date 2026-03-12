@@ -119,7 +119,7 @@ npm run dev
 * Daniela Mikie Kikuchi Gonçalves – 25003068
 * Felipe Nasser Coelho Moussa – 25004922
 * Rafaela Jacobsen Braga – RA
-* Kauan Aurelio Lasmar Dias – RA
+* Kauan Aurelio Lasmar Dias – 25001590
 
 ---
 
