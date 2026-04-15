@@ -11,3 +11,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+#kiro
+.kiro
+
+#agents
+.agents
