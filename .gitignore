@@ -12,8 +12,14 @@ Thumbs.db
 # Logs
 *.log
 
-#kiro
+# kiro
 .kiro
 
-#agents
+# agents
 .agents
+
+# Node
+node_modules/
+
+# Build (frontend ou geral)
+dist/
