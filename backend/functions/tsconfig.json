@@ -10,9 +10,10 @@
     "target": "es2020",          
     "esModuleInterop": true,
     "skipLibCheck": true,        
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["jest", "node"]
   },
   "compileOnSave": true,
   "include": ["src"],
-  "exclude": ["node_modules", "src/__tests__"]
+  "exclude": ["node_modules"]
 }
