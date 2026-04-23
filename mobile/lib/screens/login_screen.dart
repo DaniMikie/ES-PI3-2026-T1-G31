@@ -1,5 +1,12 @@
+/**
+ * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ * Autor: Felipe | RA: 
+ */
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,12 +28,35 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if(_formKey.currentState!.validate()) {
-      //TO-DO: INTEGRAR O SERVIÇO DE AUTENTICAÇÃO (BACKEND)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entrando...')),
-      );
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String message = 'Erro ao fazer login';
+        if (e.code == 'user-not-found') {
+          message = 'Usuário não encontrado';
+        } else if (e.code == 'wrong-password') {
+          message = 'Senha incorreta';
+        } else if (e.code == 'invalid-email') {
+          message = 'E-mail inválido';
+        } else if (e.code == 'invalid-credential') {
+          message = 'E-mail ou senha incorretos';
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        }
+      }
     }
   }
 
@@ -38,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _createAccount() {
-    //TO-DO: NAVEGAÇÃO PARA A TELA DE CADASTRO
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navegar para cadastro')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
     );
   }
 

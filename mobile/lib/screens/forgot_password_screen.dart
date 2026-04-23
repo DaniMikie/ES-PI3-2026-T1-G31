@@ -1,4 +1,10 @@
+/**
+ * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ * Autor: Felipe | RA: 
+ */
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -15,12 +21,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _sendRecEmail() {
+  void _sendRecEmail() async {
     if (_formKey.currentState!.validate()) {
-      // TO-DO: VERIFICAR SE E-MAIL EXISTE EM ALGUMA CONTA (BACKEND)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('E-mail de verificação enviado!')),
-      );
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(
+          email: _emailController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('E-mail de recuperação enviado!')),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String message = 'Erro ao enviar e-mail';
+        if (e.code == 'user-not-found') {
+          message = 'E-mail não cadastrado';
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        }
+      }
     }
   }
 
