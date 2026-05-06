@@ -67,3 +67,11 @@ export type StartupQuestionDocument = {
   answeredAt?: Timestamp | FieldValue;
   createdAt?: Timestamp | FieldValue;
 };
+
+export type UserDocument = {
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+  createdAt?: Timestamp | FieldValue;
+};
