@@ -1,10 +1,6 @@
-/**
- * Tela de Cadastro — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- */
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,12 +11,16 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  final _functions = FirebaseFunctions.instance;
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _cpfController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
   bool _viewPassword = false;
   bool _viewConfirmPassword = false;
 
@@ -39,11 +39,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       try {
         final credential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        await credential.user?.updateDisplayName(_nameController.text.trim());
+
+        await credential.user
+            ?.updateDisplayName(_nameController.text.trim());
+
+        // 🔥 CHAMADA BACKEND AQUI
+        final callable = _functions.httpsCallable('createUserProfile');
+
+        await callable.call({
+          'nomeCompleto': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'cpf': _cpfController.text.trim(),
+          'telefone': _phoneController.text.trim(),
+        });
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Conta criada com sucesso!')),
@@ -52,6 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Erro ao criar conta';
+
         if (e.code == 'email-already-in-use') {
           message = 'Este e-mail já está cadastrado';
         } else if (e.code == 'weak-password') {
@@ -59,9 +73,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else if (e.code == 'invalid-email') {
           message = 'E-mail inválido';
         }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(message)),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao salvar dados do usuário')),
           );
         }
       }
@@ -88,7 +109,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 40),
 
-                  // Logo
                   const Center(
                     child: Text(
                       'MesclaInvest',
@@ -102,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 48),
 
-                  // Título
                   const Text(
                     'Criar conta',
                     style: TextStyle(
@@ -124,24 +143,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Campo Nome
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
                       labelText: 'Nome completo*',
                       prefixIcon: Icon(Icons.person_outline),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -153,7 +159,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Campo Email
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -161,18 +166,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Email*',
                       hintText: 'seuemail@exemplo.com',
                       prefixIcon: Icon(Icons.email_outlined),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -187,7 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Campo CPF
                   TextFormField(
                     controller: _cpfController,
                     keyboardType: TextInputType.number,
@@ -195,18 +187,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'CPF*',
                       hintText: '000.000.000-00',
                       prefixIcon: Icon(Icons.badge_outlined),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -218,7 +198,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Campo Telefone
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
@@ -226,18 +205,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Telefone celular*',
                       hintText: '(00) 00000-0000',
                       prefixIcon: Icon(Icons.phone_outlined),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -249,7 +216,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Campo Senha
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_viewPassword,
@@ -268,18 +234,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           });
                         },
                       ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -294,7 +248,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Campo Confirmar Senha
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: !_viewConfirmPassword,
@@ -309,21 +262,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         onPressed: () {
                           setState(() {
-                            _viewConfirmPassword = !_viewConfirmPassword;
+                            _viewConfirmPassword =
+                            !_viewConfirmPassword;
                           });
                         },
-                      ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -339,7 +281,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Botão Cadastrar
                   ElevatedButton(
                     onPressed: _register,
                     style: ElevatedButton.styleFrom(
@@ -358,27 +299,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Voltar para login
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Já tem conta? ',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        GestureDetector(
-                          onTap: _returnToLogin,
-                          child: const Text(
-                            'Fazer login',
-                            style: TextStyle(
-                              color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Já tem conta? ',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      GestureDetector(
+                        onTap: _returnToLogin,
+                        child: const Text(
+                          'Fazer login',
+                          style: TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 32),

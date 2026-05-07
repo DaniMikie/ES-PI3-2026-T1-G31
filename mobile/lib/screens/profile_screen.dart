@@ -1,10 +1,6 @@
-/**
- * Tela Perfil — MesclaInvest
- * Autor: [Nome do Autor] | RA: [RA do Autor]
- */
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,33 +10,84 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _functions = FirebaseFunctions.instance;
+
   bool _mfaAtivo = true;
 
-  // Dados simulados do usuário (futuramente virão da API/Firebase)
-  final Map<String, String> _dadosUsuario = {
-    'nomeCompleto': 'Seu Nome',
-    'email': 'seuemail@gmail.com',
-    'cpf': '000000000-00',
-    'telefone': '(00) 0000-0000',
+  Map<String, String> _dadosUsuario = {
+    'nomeCompleto': '',
+    'email': '',
+    'cpf': '',
+    'telefone': '',
   };
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  // 🔹 LOAD PROFILE
+  Future<void> _loadUserProfile() async {
+    try {
+      final callable = _functions.httpsCallable('getUserProfile');
+
+      final result = await callable.call();
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final user = Map<String, dynamic>.from(data['data']);
+
+      if (!mounted) return;
+
+      setState(() {
+        _dadosUsuario = {
+          'nomeCompleto': user['nomeCompleto'] ?? '',
+          'email': user['email'] ?? '',
+          'cpf': user['cpf'] ?? '',
+          'telefone': user['telefone'] ?? '',
+        };
+
+        _mfaAtivo = user['mfaAtivo'] ?? false;
+      });
+    } catch (e) {
+      print('Erro ao carregar perfil: $e');
+    }
+  }
+
   void _alterarDado() {
-    // TO-DO: NAVEGAÇÃO PARA TELA DE EDIÇÃO DE DADOS DO USUÁRIO
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navegar para edição de dados')),
     );
   }
 
-  void _onMfaToggle(bool valor) {
+  // 🔹 UPDATE MFA
+  Future<void> _onMfaToggle(bool valor) async {
     setState(() => _mfaAtivo = valor);
-    // TO-DO: PERSISTIR PREFERÊNCIA DE MFA NO BACKEND
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Autenticação Multifator ${valor ? 'ativada' : 'desativada'}',
+
+    try {
+      final callable = _functions.httpsCallable('updateMfaPreference');
+
+      await callable.call({
+        'mfaAtivo': valor,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Autenticação Multifator ${valor ? 'ativada' : 'desativada'}',
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // rollback se der erro
+      setState(() => _mfaAtivo = !valor);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao atualizar MFA'),
+        ),
+      );
+    }
   }
 
   @override
@@ -59,7 +106,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     const SizedBox(height: 24),
 
-                    // ── Cabeçalho ────────────────────────────────
                     Row(
                       children: [
                         GestureDetector(
@@ -78,14 +124,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        // Espaço para equilibrar a seta
                         const SizedBox(width: 22),
                       ],
                     ),
 
                     const SizedBox(height: 32),
 
-                    // ── Título da seção ───────────────────────────
                     const Text(
                       'Seus dados',
                       style: TextStyle(
@@ -97,7 +141,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 28),
 
-                    // ── Campos de dados (somente leitura) ─────────
                     _CampoInfo(
                       label: 'Nome Completo*',
                       valor: _dadosUsuario['nomeCompleto']!,
@@ -126,7 +169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ── Campo Senha (sem valor visível) ────────────
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -157,7 +199,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 36),
 
-                    // ── Botão Alterar dado ─────────────────────────
                     ElevatedButton(
                       onPressed: _alterarDado,
                       style: ElevatedButton.styleFrom(
@@ -181,7 +222,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 36),
 
-                    // ── Toggle MFA ────────────────────────────────
                     Row(
                       children: [
                         Switch(
@@ -214,8 +254,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
-// ── Widget auxiliar: campo de dado somente leitura ───────────────
 
 class _CampoInfo extends StatelessWidget {
   final String label;
