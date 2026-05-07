@@ -1,10 +1,11 @@
 /**
  * Tela Confirmação de Investimento (com modal de autenticação) — MesclaInvest
- * Autor: [Nome do Autor] | RA: [RA do Autor]
+ * Autor: Rafaela Jacobsen Braga | RA: 25004280
  */
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class InvestmentConfirmScreen extends StatefulWidget {
   final String startupId;
@@ -26,7 +27,10 @@ class InvestmentConfirmScreen extends StatefulWidget {
 }
 
 class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
+  final _functions = FirebaseFunctions.instance;
+
   bool _modalAberto = true;
+  bool _loadingConfirm = false;
 
   void _fecharModal() {
     setState(() => _modalAberto = false);
@@ -36,6 +40,64 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
     setState(() => _modalAberto = true);
   }
 
+  Future<void> _confirmarInvestimento(String senha) async {
+    setState(() => _loadingConfirm = true);
+
+    try {
+      final callable = _functions.httpsCallable('investInStartup');
+
+      final result = await callable.call({
+        'startupId': widget.startupId,
+        'valorInvestido': widget.valorInvestido,
+        'quantidadeTokens': widget.quantidadeTokens,
+        'senha': senha,
+      });
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+
+      if (!mounted) return;
+
+      setState(() {
+        _loadingConfirm = false;
+        _modalAberto = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            data['message'] as String? ??
+                'Investimento confirmado: ${widget.quantidadeTokens} tokens em ${widget.startupNome}',
+          ),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+
+      setState(() => _loadingConfirm = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'Erro ao confirmar investimento.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _loadingConfirm = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro inesperado ao confirmar investimento.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +105,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // ── Conteúdo de fundo (desfocado quando modal aberto) ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -55,7 +116,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                       children: [
                         const SizedBox(height: 32),
 
-                        // Logo
                         const Center(
                           child: Text(
                             'MesclaInvest',
@@ -69,7 +129,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
 
                         const SizedBox(height: 28),
 
-                        // Seta + nome da startup
                         Row(
                           children: [
                             GestureDetector(
@@ -90,7 +149,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
 
                         const SizedBox(height: 28),
 
-                        // Título
                         const Text(
                           'Aplicar investimento',
                           style: TextStyle(
@@ -103,21 +161,29 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                         const SizedBox(height: 8),
 
                         const Text(
-                          'Quanto gostaria de investir?',
+                          'Confira os dados do seu investimento antes de confirmar.',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        _InfoCard(
+                          startupNome: widget.startupNome,
+                          valorInvestido: widget.valorInvestido,
+                          quantidadeTokens: widget.quantidadeTokens,
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Botão Avançar desabilitado (cinza) quando modal aberto
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                   child: ElevatedButton(
-                    onPressed: _modalAberto ? null : _abrirModal,
+                    onPressed:
+                    _modalAberto || _loadingConfirm ? null : _abrirModal,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade400,
+                      backgroundColor: const Color(0xFF2E7D32),
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: Colors.grey.shade400,
                       disabledForegroundColor: Colors.white,
@@ -139,33 +205,22 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
               ],
             ),
 
-            // ── Overlay escuro quando modal aberto ────────────────
             if (_modalAberto)
               GestureDetector(
-                onTap: _fecharModal,
+                onTap: _loadingConfirm ? null : _fecharModal,
                 child: Container(
                   color: Colors.black.withOpacity(0.35),
                 ),
               ),
 
-            // ── Modal de autenticação ──────────────────────────────
             if (_modalAberto)
               Positioned(
                 left: 24,
                 right: 24,
                 top: MediaQuery.of(context).size.height * 0.28,
                 child: _ModalAutenticacao(
-                  onConfirmar: (senha) {
-                    _fecharModal();
-                    // TO-DO: VALIDAR SENHA E CONFIRMAR COMPRA NO BACKEND
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Compra confirmada: ${widget.quantidadeTokens} tokens em ${widget.startupNome}',
-                        ),
-                      ),
-                    );
-                  },
+                  loading: _loadingConfirm,
+                  onConfirmar: _confirmarInvestimento,
                 ),
               ),
           ],
@@ -175,12 +230,74 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
   }
 }
 
-// ── Modal de autenticação ────────────────────────────────────────
+class _InfoCard extends StatelessWidget {
+  final String startupNome;
+  final double valorInvestido;
+  final int quantidadeTokens;
+
+  const _InfoCard({
+    required this.startupNome,
+    required this.valorInvestido,
+    required this.quantidadeTokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _row('Startup', startupNome),
+          const SizedBox(height: 12),
+          _row('Valor investido', 'R\$ ${valorInvestido.toStringAsFixed(2)}'),
+          const SizedBox(height: 12),
+          _row('Tokens', quantidadeTokens.toString()),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class _ModalAutenticacao extends StatefulWidget {
+  final bool loading;
   final void Function(String senha) onConfirmar;
 
-  const _ModalAutenticacao({required this.onConfirmar});
+  const _ModalAutenticacao({
+    required this.loading,
+    required this.onConfirmar,
+  });
 
   @override
   State<_ModalAutenticacao> createState() => _ModalAutenticacaoState();
@@ -225,7 +342,6 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Título do modal
               const Text(
                 'Autenticação',
                 style: TextStyle(
@@ -237,7 +353,6 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
 
               const SizedBox(height: 8),
 
-              // Subtítulo
               const Text(
                 'Digite sua senha para realizar a compra',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
@@ -246,9 +361,9 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
 
               const SizedBox(height: 20),
 
-              // Campo de senha
               TextFormField(
                 controller: _senhaController,
+                enabled: !widget.loading,
                 obscureText: !_senhaVisivel,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(
@@ -262,15 +377,20 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
                           : Icons.visibility_off_outlined,
                       color: Colors.grey,
                     ),
-                    onPressed: () =>
-                        setState(() => _senhaVisivel = !_senhaVisivel),
+                    onPressed: widget.loading
+                        ? null
+                        : () => setState(
+                          () => _senhaVisivel = !_senhaVisivel,
+                    ),
                   ),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey.shade400),
                   ),
                   focusedBorder: const UnderlineInputBorder(
-                    borderSide:
-                    BorderSide(color: Color(0xFF2E7D32), width: 2),
+                    borderSide: BorderSide(
+                      color: Color(0xFF2E7D32),
+                      width: 2,
+                    ),
                   ),
                   errorBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.red),
@@ -289,21 +409,31 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
 
               const SizedBox(height: 24),
 
-              // Botão Confirmar
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _confirmar,
+                  onPressed: widget.loading ? null : _confirmar,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade400,
+                    disabledForegroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(32),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child: widget.loading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : const Text(
                     'Confirmar',
                     style: TextStyle(
                       fontSize: 16,

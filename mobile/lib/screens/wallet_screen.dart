@@ -1,9 +1,5 @@
-/**
- * Tela Carteira — MesclaInvest
- * Autor: [Nome do Autor] | RA: [RA do Autor]
- */
-
 import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 // Modelo de investimento do usuário
 class Investimento {
@@ -24,78 +20,6 @@ class Investimento {
   });
 }
 
-// Modelo de ponto do gráfico
-class PontoGrafico {
-  final String label;
-  final double valor;
-
-  const PontoGrafico({required this.label, required this.valor});
-}
-
-// Dados simulados (futuramente virão da API/Firebase)
-const List<Investimento> _investimentosMock = [
-  Investimento(
-    startupId: 's1',
-    startupNome: 'Startup1',
-    logoInicial: 'S1',
-    quantidadeTokens: 150,
-    valorTotal: 320.00,
-    variacaoPercent: 1.2,
-  ),
-  Investimento(
-    startupId: 's2',
-    startupNome: 'Startup2',
-    logoInicial: 'S2',
-    quantidadeTokens: 50,
-    valorTotal: 50.00,
-    variacaoPercent: -11.5,
-  ),
-  Investimento(
-    startupId: 's3',
-    startupNome: 'Startup3',
-    logoInicial: 'S3',
-    quantidadeTokens: 50,
-    valorTotal: 50.00,
-    variacaoPercent: 11.5,
-  ),
-];
-
-// Dados simulados do gráfico por período
-const Map<String, List<PontoGrafico>> _dadosGrafico = {
-  'Dia': [
-    PontoGrafico(label: '08h', valor: 390),
-    PontoGrafico(label: '10h', valor: 405),
-    PontoGrafico(label: '12h', valor: 398),
-    PontoGrafico(label: '14h', valor: 412),
-    PontoGrafico(label: '16h', valor: 420),
-    PontoGrafico(label: '18h', valor: 418),
-  ],
-  'Semana': [
-    PontoGrafico(label: 'Seg', valor: 380),
-    PontoGrafico(label: 'Ter', valor: 392),
-    PontoGrafico(label: 'Qua', valor: 385),
-    PontoGrafico(label: 'Qui', valor: 400),
-    PontoGrafico(label: 'Sex', valor: 410),
-    PontoGrafico(label: 'Sab', valor: 418),
-  ],
-  'Mês': [
-    PontoGrafico(label: 'Nov 1', valor: 300),
-    PontoGrafico(label: 'Nov 7', valor: 320),
-    PontoGrafico(label: 'Nov 14', valor: 310),
-    PontoGrafico(label: 'Nov 15', valor: 330),
-    PontoGrafico(label: 'Nov 21', valor: 350),
-    PontoGrafico(label: 'Nov 30', valor: 420),
-  ],
-  'Ano': [
-    PontoGrafico(label: 'Jan', valor: 200),
-    PontoGrafico(label: 'Mar', valor: 250),
-    PontoGrafico(label: 'Mai', valor: 280),
-    PontoGrafico(label: 'Jul', valor: 310),
-    PontoGrafico(label: 'Set', valor: 380),
-    PontoGrafico(label: 'Nov', valor: 420),
-  ],
-};
-
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -104,15 +28,58 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
+  final _functions = FirebaseFunctions.instance;
+
   String _periodoSelecionado = 'Mês';
   bool _saldoVisivel = true;
 
   final List<String> _periodos = ['Dia', 'Semana', 'Mês', 'Ano'];
 
-  // Saldo e tokens totais (simulados)
-  final double _saldo = 1234.00;
-  final int _totalStartups = 3;
-  final int _totalTokens = 300;
+  double _saldo = 0;
+  int _totalStartups = 0;
+  int _totalTokens = 0;
+  List<Investimento> _investimentos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWallet();
+  }
+
+  Future<void> _loadWallet() async {
+    try {
+      final callable = _functions.httpsCallable('getUserWallet');
+      final result = await callable.call();
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final wallet = Map<String, dynamic>.from(data['data']);
+
+      final investimentosRaw = List<Map<String, dynamic>>.from(
+        wallet['investimentos'] ?? [],
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _saldo = (wallet['saldo'] ?? 0).toDouble();
+        _totalStartups = wallet['totalStartups'] ?? 0;
+        _totalTokens = wallet['totalTokens'] ?? 0;
+
+        _investimentos = investimentosRaw.map((inv) {
+          return Investimento(
+            startupId: inv['startupId'] ?? '',
+            startupNome: inv['startupNome'] ?? '',
+            logoInicial: inv['logoInicial'] ?? 'ST',
+            quantidadeTokens: inv['quantidadeTokens'] ?? 0,
+            valorTotal: (inv['valorTotal'] ?? 0).toDouble(),
+            variacaoPercent: (inv['variacaoPercent'] ?? 0).toDouble(),
+          );
+        }).toList();
+      });
+    } catch (e) {
+      print('Erro ao carregar carteira: $e');
+    }
+  }
 
   void _toggleSaldoVisivel() {
     setState(() {
@@ -121,7 +88,6 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _verDetalhesInvestimento(Investimento inv) {
-    // TO-DO: NAVEGAÇÃO PARA A TELA DE DETALHES DA STARTUP
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Abrir detalhes de ${inv.startupNome}')),
     );
@@ -134,13 +100,11 @@ class _WalletScreenState extends State<WalletScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Bloco superior escuro ──────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Saudação
                   const Text(
                     'Olá, NomeUsuário',
                     style: TextStyle(
@@ -149,14 +113,10 @@ class _WalletScreenState extends State<WalletScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Saldo + Card de tokens lado a lado
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Saldo
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,11 +157,11 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
-
-                      // Card de tokens
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF2D2D2D),
                           borderRadius: BorderRadius.circular(16),
@@ -240,8 +200,6 @@ class _WalletScreenState extends State<WalletScreen> {
                 ],
               ),
             ),
-
-            // ── Bloco branco com scroll ────────────────────────────
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -256,74 +214,6 @@ class _WalletScreenState extends State<WalletScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título Análise
-                      const Text(
-                        'Análise',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Card do gráfico
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            // Seletor de período
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: _periodos.map((periodo) {
-                                final selecionado =
-                                    _periodoSelecionado == periodo;
-                                return GestureDetector(
-                                  onTap: () => setState(
-                                          () => _periodoSelecionado = periodo),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: selecionado
-                                          ? Colors.black
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      periodo,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: selecionado
-                                            ? Colors.white
-                                            : Colors.grey,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Gráfico de barras
-                            _GraficoBarras(
-                              pontos:
-                              _dadosGrafico[_periodoSelecionado] ?? [],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Título Investimentos
                       const Text(
                         'Seus investimentos',
                         style: TextStyle(
@@ -332,23 +222,21 @@ class _WalletScreenState extends State<WalletScreen> {
                           color: Color(0xFF2E7D32),
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Lista de investimentos
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _investimentosMock.length,
+                        itemCount: _investimentos.length,
                         separatorBuilder: (_, __) => const Divider(
                           height: 1,
                           color: Color(0xFFEEEEEE),
                         ),
                         itemBuilder: (context, index) {
                           return _ItemInvestimento(
-                            investimento: _investimentosMock[index],
+                            investimento: _investimentos[index],
                             onTap: () => _verDetalhesInvestimento(
-                                _investimentosMock[index]),
+                              _investimentos[index],
+                            ),
                           );
                         },
                       ),
@@ -364,72 +252,6 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 }
 
-// Widget do gráfico de barras
-class _GraficoBarras extends StatelessWidget {
-  final List<PontoGrafico> pontos;
-
-  const _GraficoBarras({required this.pontos});
-
-  @override
-  Widget build(BuildContext context) {
-    if (pontos.isEmpty) return const SizedBox.shrink();
-
-    final maxValor = pontos.map((p) => p.valor).reduce((a, b) => a > b ? a : b);
-    final ultimoIndex = pontos.length - 1;
-
-    return SizedBox(
-      height: 120,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(pontos.length, (index) {
-          final ponto = pontos[index];
-          final alturaRelativa = ponto.valor / maxValor;
-          final isUltimo = index == ultimoIndex;
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Barra
-                  Flexible(
-                    child: FractionallySizedBox(
-                      heightFactor: alturaRelativa,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isUltimo
-                              ? const Color(0xFF2E7D32)
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Label
-                  Text(
-                    ponto.label,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: isUltimo ? Colors.black : Colors.grey,
-                      fontWeight: isUltimo
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-// Widget de item de investimento na lista
 class _ItemInvestimento extends StatelessWidget {
   final Investimento investimento;
   final VoidCallback onTap;
@@ -449,7 +271,6 @@ class _ItemInvestimento extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: 44,
               height: 44,
@@ -467,10 +288,7 @@ class _ItemInvestimento extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(width: 12),
-
-            // Nome e tokens
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,8 +311,6 @@ class _ItemInvestimento extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Valor e variação
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -511,9 +327,7 @@ class _ItemInvestimento extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: positivo
-                        ? const Color(0xFF2E7D32)
-                        : Colors.red,
+                    color: positivo ? const Color(0xFF2E7D32) : Colors.red,
                   ),
                 ),
               ],
