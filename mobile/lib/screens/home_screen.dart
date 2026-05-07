@@ -156,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_back, size: 22),
                   const Expanded(
                     child: Center(
                       child: Text(
@@ -169,7 +168,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 22),
                 ],
               ),
             ),

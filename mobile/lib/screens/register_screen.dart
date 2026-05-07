@@ -48,13 +48,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ?.updateDisplayName(_nameController.text.trim());
 
         // 🔥 CHAMADA BACKEND AQUI
-        final callable = _functions.httpsCallable('createUserProfile');
+        final callable = _functions.httpsCallable('createUser');
 
         await callable.call({
-          'nomeCompleto': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
+          'name': _nameController.text.trim(),
           'cpf': _cpfController.text.trim(),
-          'telefone': _phoneController.text.trim(),
+          'phone': _phoneController.text.trim(),
         });
 
         if (mounted) {
