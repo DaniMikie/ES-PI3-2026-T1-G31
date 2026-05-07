@@ -38,16 +38,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _register() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final credential =
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        final credential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
 
-        await credential.user
-            ?.updateDisplayName(_nameController.text.trim());
+        await credential.user?.updateDisplayName(_nameController.text.trim());
 
-        // 🔥 CHAMADA BACKEND AQUI
         final callable = _functions.httpsCallable('createUser');
 
         await callable.call({
@@ -74,9 +72,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
         }
       } catch (e) {
         if (mounted) {
@@ -134,10 +132,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const Text(
                     '(*)Preencha os campos obrigatórios',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF2E7D32),
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32)),
                   ),
 
                   const SizedBox(height: 32),
@@ -261,8 +256,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         onPressed: () {
                           setState(() {
-                            _viewConfirmPassword =
-                            !_viewConfirmPassword;
+                            _viewConfirmPassword = !_viewConfirmPassword;
                           });
                         },
                       ),
