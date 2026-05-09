@@ -73,5 +73,7 @@ export type UserDocument = {
   email: string;
   cpf: string;
   phone: string;
+  balanceCents?: number;
+  mfaAtivo?: boolean;
   createdAt?: Timestamp | FieldValue;
 };
