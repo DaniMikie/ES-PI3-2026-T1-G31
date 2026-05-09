@@ -3,6 +3,7 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
+import {TransactionDocument} from "../types";
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../../startups/shared/firebase";
 
@@ -25,4 +26,12 @@ export async function addTokens(startupId: string, uid: string, quantity: number
         totalInvestedCents: FieldValue.increment(totalCents),
         updatedAt: FieldValue.serverTimestamp(),
     }, {merge: true}); //se o documento já existe, soma os valores. Se não existe, cria com esses valores
+}
+
+export async function saveTransaction(uid: string, transaction: TransactionDocument): Promise<string> {
+    const ref = await db.collection("users").doc(uid).collection("transactions").add({
+        ...transaction,
+        createdAt: FieldValue.serverTimestamp(),
+    });
+    return ref.id;
 }
