@@ -15,6 +15,8 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 * **Tela detalhada da startup** com sócios, capital, tokens, sumário executivo e perguntas públicas
 * **Envio de perguntas** para empreendedores (públicas e privadas para investidores)
 * **Perfil do usuário** com dados pessoais e preferência de MFA
+* **Carteira simulada** com saldo fictício e adição de crédito
+* **Compra de tokens** com validação de saldo e registro de transação
 * **Testes unitários** com Jest (TDD)
 
 ---
@@ -78,15 +80,21 @@ PI3/
 │           │   │   └── validation.ts
 │           │   └── types/            # Tipos TypeScript
 │           │       └── index.ts
-│           ├── exchange/             # Módulo do balcão (em desenvolvimento)
+│           ├── exchange/             # Módulo do balcão de tokens
 │           │   ├── handlers/
+│           │   │   ├── addCredits.ts
+│           │   │   ├── buyTokens.ts
+│           │   │   └── getWallet.ts
 │           │   ├── repositories/
-│           │   ├── shared/
+│           │   │   └── exchangeRepository.ts
 │           │   └── types/
+│           │       └── index.ts
 │           └── __tests__/            # Testes unitários (Jest)
-│               └── startups/
-│                   ├── shared/
-│                   ├── types/
+│               ├── startups/
+│               │   ├── shared/
+│               │   ├── types/
+│               │   └── repositories/
+│               └── exchange/
 │                   └── repositories/
 │
 ├── mobile/                           # Aplicação Flutter
@@ -135,6 +143,8 @@ Flutter (app) → Cloud Function (handler) → Repository → Firestore
 
 ## Cloud Functions Disponíveis
 
+### Módulo Startups
+
 | Function | Descrição |
 |----------|-----------|
 | `listStartups` | Lista startups com filtro por estágio e busca por texto |
@@ -145,6 +155,14 @@ Flutter (app) → Cloud Function (handler) → Repository → Firestore
 | `createUser` | Salva dados do usuário (nome, CPF, telefone) no Firestore |
 | `getUserProfile` | Retorna dados do perfil do usuário |
 | `updateMfaPreference` | Atualiza preferência de autenticação multifator |
+
+### Módulo Exchange (Balcão de Tokens)
+
+| Function | Descrição |
+|----------|-----------|
+| `addCredits` | Adiciona saldo fictício na carteira do usuário |
+| `getWallet` | Retorna saldo atual da carteira |
+| `buyTokens` | Compra simulada de tokens (valida saldo, debita, registra investidor) |
 
 ---
 
@@ -200,8 +218,9 @@ Requer emulador Android (Android Studio) ou dispositivo físico conectado via US
 ### Firestore
 * Coleção `startups` — 5 startups cadastradas (GreenPulse, MedConnect, AgroSmart, EduFlex, FinToken)
 * Subcoleção `startups/{id}/questions` — perguntas dos usuários
-* Subcoleção `startups/{id}/investors` — investidores de cada startup
-* Coleção `users` — dados dos usuários (nome, CPF, telefone)
+* Subcoleção `startups/{id}/investors` — posição de tokens dos investidores
+* Coleção `users` — dados dos usuários (nome, CPF, telefone, saldo)
+* Subcoleção `users/{uid}/transactions` — histórico de compras e vendas
 
 ### Authentication
 * Email/Password habilitado
