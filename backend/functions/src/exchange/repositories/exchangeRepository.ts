@@ -5,7 +5,6 @@
 
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../../startups/shared/firebase";
-import { TokenPosition, TransactionDocument } from "../types";
 
 export async function getBalance(uid: string): Promise<number> {
     const exchangeSnapshot = await db.collection("users").doc(uid).get();
