@@ -1,5 +1,5 @@
 /**
- * Repository de exchange
+ * Repository de exchange — acesso ao Firestore
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
@@ -17,4 +17,12 @@ export async function updateBalance(uid: string, amountCents: number): Promise<v
     await db.collection("users").doc(uid).update({
         balanceCents: FieldValue.increment(amountCents),
     });
+}
+
+export async function addTokens(startupId: string, uid: string, quantity: number, totalCents: number): Promise<void> {
+    await db.collection("startups").doc(startupId).collection("investors").doc(uid).set({
+        quantity: FieldValue.increment(quantity),
+        totalInvestedCents: FieldValue.increment(totalCents),
+        updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true}); //se o documento já existe, soma os valores. Se não existe, cria com esses valores
 }
