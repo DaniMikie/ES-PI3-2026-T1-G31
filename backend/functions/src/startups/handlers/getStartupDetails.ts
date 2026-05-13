@@ -1,6 +1,10 @@
 /**
  * Handler: getStartupDetails — retorna detalhes completos de uma startup
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ *
+ * O Flutter chama essa function quando o usuário clica numa startup no catálogo.
+ * Retorna todos os dados: descrição, sócios, capital, tokens, perguntas públicas
+ * e permissões do usuário (se é investidor, se pode negociar, etc).
  */
 
 import {HttpsError, onCall} from "firebase-functions/https";
@@ -13,8 +17,10 @@ import {
 } from "../repositories/startupRepository";
 
 export const getStartupDetails = onCall(async (request) => {
+  // Verifica login e pega dados do usuário
   const user = requireAuthenticatedUser(request);
 
+  // Pega o ID da startup que o Flutter mandou
   const startupId = normalizeString(request.data?.id);
 
   if (!startupId) {
@@ -24,14 +30,19 @@ export const getStartupDetails = onCall(async (request) => {
     );
   }
 
+  // Busca a startup no Firestore
   const startup = await getStartupById(startupId);
   if (!startup) {
     throw new HttpsError("not-found", "Startup nao encontrada.");
   }
 
+  // Verifica se o usuário é investidor dessa startup
   const isInvestor = await userIsInvestor(startupId, user.uid);
+
+  // Busca perguntas públicas da startup
   const questions = await listPublicQuestions(startupId);
 
+  // Retorna tudo junto: dados + perguntas + permissões
   return {
     data: {
       id: startupId,
@@ -39,6 +50,7 @@ export const getStartupDetails = onCall(async (request) => {
       createdAt: startup.createdAt?.toDate().toISOString() ?? null,
       updatedAt: startup.updatedAt?.toDate().toISOString() ?? null,
       publicQuestions: questions,
+      // Permissões baseadas no status de investidor
       access: {
         isInvestor,
         canTradeTokens: isInvestor,

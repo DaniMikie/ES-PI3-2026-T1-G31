@@ -1,6 +1,8 @@
 /**
  * Repository de Users — acesso ao Firestore
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ *
+ * Funções que leem/escrevem dados de usuários na coleção users/{uid}.
  */
 
 import {FieldValue} from "firebase-admin/firestore";
@@ -9,6 +11,11 @@ import {db} from "../../startups/shared/firebase";
 
 const usersCollection = db.collection("users");
 
+/**
+ * Cria o perfil do usuário no Firestore.
+ * Chamada após o cadastro no Firebase Auth.
+ * Salva nome, email, CPF, telefone e timestamp de criação.
+ */
 export async function createUserProfile(
   uid: string,
   data: UserDocument
@@ -19,6 +26,10 @@ export async function createUserProfile(
   });
 }
 
+/**
+ * Busca o perfil do usuário pelo uid.
+ * Retorna undefined se o documento não existir.
+ */
 export async function getUserProfile(
   uid: string
 ): Promise<UserDocument | undefined> {
