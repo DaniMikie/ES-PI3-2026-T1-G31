@@ -4,8 +4,8 @@
  */
 
 import {onCall} from "firebase-functions/https";
-import {requireAuthenticatedUser} from "../shared/auth";
-import {db} from "../shared/firebase";
+import {requireAuthenticatedUser} from "../../startups/shared/auth";
+import {db} from "../../startups/shared/firebase";
 
 export const updateMfaPreference = onCall(async (request) => {
   const user = requireAuthenticatedUser(request);

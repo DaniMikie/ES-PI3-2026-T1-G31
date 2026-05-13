@@ -5,7 +5,7 @@
 
 import {FieldValue} from "firebase-admin/firestore";
 import {UserDocument} from "../types";
-import {db} from "../shared/firebase";
+import {db} from "../../startups/shared/firebase";
 
 const usersCollection = db.collection("users");
 
