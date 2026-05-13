@@ -3,18 +3,22 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
-import { onCall } from "firebase-functions/https";
-import { requireAuthenticatedUser } from "../../startups/shared/auth";
-import { getBalance } from "../repositories/exchangeRepository";
+import {onCall} from "firebase-functions/https";
+import {requireAuthenticatedUser} from "../../startups/shared/auth";
+import {getBalance, getUserTokenPositions} from "../repositories/exchangeRepository";
 
 export const getWallet = onCall(async (request) => {
-    const user = requireAuthenticatedUser(request);
+  const user = requireAuthenticatedUser(request);
 
-    const balanceCents = await getBalance(user.uid);
+  const balanceCents = await getBalance(user.uid);
+  const positions = await getUserTokenPositions(user.uid);
 
-    return {
-        data: {
-            balanceCents,
-        },
-    };
+  return {
+    data: {
+      balanceCents,
+      positions,
+      totalStartups: positions.length,
+      totalTokens: positions.reduce((sum, p) => sum + p.quantity, 0),
+    },
+  };
 });

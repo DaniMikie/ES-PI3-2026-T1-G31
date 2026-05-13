@@ -4,7 +4,7 @@
  */
 
 import {onCall} from "firebase-functions/https";
-import {requireAuthenticatedUser} from "../shared/auth";
+import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {getUserProfile as getProfile} from "../repositories/userRepository";
 
 export const getUserProfile = onCall(async (request) => {

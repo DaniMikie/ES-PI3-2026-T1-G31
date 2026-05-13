@@ -4,8 +4,8 @@
  */
 
 import {HttpsError, onCall} from "firebase-functions/https";
-import {requireAuthenticatedUser} from "../shared/auth";
-import {normalizeString} from "../shared/validation";
+import {requireAuthenticatedUser} from "../../startups/shared/auth";
+import {normalizeString} from "../../startups/shared/validation";
 import {createUserProfile, getUserProfile} from "../repositories/userRepository";
 import {UserDocument} from "../types";
 
@@ -23,7 +23,6 @@ export const createUser = onCall(async (request) => {
     );
   }
 
-  // Verifica se já existe perfil
   const existing = await getUserProfile(user.uid);
   if (existing) {
     throw new HttpsError(
