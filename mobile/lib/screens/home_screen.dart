@@ -1,6 +1,7 @@
 /**
  * Tela Início — MesclaInvest
  * Autor: Rafaela Jacobsen Braga | RA: 25004280
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';

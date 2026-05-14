@@ -1,6 +1,6 @@
 /**
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- * Autor: Felipe | RA: 
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const MainScreen()),
           );
         }
       } on FirebaseAuthException catch (e) {

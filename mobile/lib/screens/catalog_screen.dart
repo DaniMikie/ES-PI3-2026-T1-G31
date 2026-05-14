@@ -1,3 +1,5 @@
+// REMOVER DEPOIS
+
 /**
  * Tela de Catálogo de Startups — MesclaInvest
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
