@@ -1,78 +1,12 @@
 /**
  * Tela Início — MesclaInvest
- * Autor: [Nome do Autor] | RA: [RA do Autor]
+ * Autor: Rafaela Jacobsen Braga | RA: 25004280
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';
-
-// ── Modelos de dados ────────────────────────────────────────────
-
-class StartupHome {
-  final String id;
-  final String nome;
-  final String categoria;
-  final String universidade;
-  final String descricao;
-  final String estadio; // 'Nova', 'Em operação', 'Em expansão'
-  final double capitalCaptado;
-  final int totalTokens;
-  final double valorPorToken;
-  final String logoInicial;
-
-  const StartupHome({
-    required this.id,
-    required this.nome,
-    required this.categoria,
-    required this.universidade,
-    required this.descricao,
-    required this.estadio,
-    required this.capitalCaptado,
-    required this.totalTokens,
-    required this.valorPorToken,
-    required this.logoInicial,
-  });
-}
-
-// ── Dados simulados (futuramente virão da API) ──────────────────
-
-final List<StartupHome> _startupsMock = [
-  const StartupHome(
-    id: 's1',
-    nome: 'Startup1',
-    categoria: 'Tecnologia',
-    universidade: 'PUC',
-    descricao: 'Descrição startup aqui',
-    estadio: 'Nova',
-    capitalCaptado: 10000,
-    totalTokens: 5000,
-    valorPorToken: 2.50,
-    logoInicial: 'S1',
-  ),
-  const StartupHome(
-    id: 's2',
-    nome: 'Startup2',
-    categoria: 'Tecnologia',
-    universidade: 'PUC',
-    descricao: 'Descrição startup aqui',
-    estadio: 'Em operação',
-    capitalCaptado: 15000,
-    totalTokens: 2500,
-    valorPorToken: 4.50,
-    logoInicial: 'S2',
-  ),
-  const StartupHome(
-    id: 's3',
-    nome: 'Startup3',
-    categoria: 'Saúde',
-    universidade: 'PUC',
-    descricao: 'Descrição startup aqui',
-    estadio: 'Em expansão',
-    capitalCaptado: 22000,
-    totalTokens: 8000,
-    valorPorToken: 6.00,
-    logoInicial: 'S3',
-  ),
-];
+import 'package:cloud_functions/cloud_functions.dart';
+import 'startup_details_screen.dart';
 
 // ── Tela Início ─────────────────────────────────────────────────
 
@@ -84,11 +18,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _functions = FirebaseFunctions.instance;
   final _searchController = TextEditingController();
-  String _filtroSelecionado = 'Todas';
-  List<StartupHome> _startupsFiltradas = _startupsMock;
 
+  List<Map<String, dynamic>> _startups = [];
+  List<Map<String, dynamic>> _startupsFiltradas = [];
+  bool _loading = true;
+  String? _error;
+
+  String _filtroSelecionado = 'Todas';
   final List<String> _filtros = ['Todas', 'Novas', 'Em operação', 'Em expansão'];
+
+  // Mapeia label do filtro para o valor do backend
+  String? _filtroParaStage(String filtro) {
+    switch (filtro) {
+      case 'Novas':
+        return 'nova';
+      case 'Em operação':
+        return 'em_operacao';
+      case 'Em expansão':
+        return 'em_expansao';
+      default:
+        return null;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStartups();
+  }
 
   @override
   void dispose() {
@@ -96,47 +55,93 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _aplicarFiltros() {
-    final query = _searchController.text.toLowerCase();
+  Future<void> _loadStartups() async {
     setState(() {
-      _startupsFiltradas = _startupsMock.where((s) {
-        final matchTexto = query.isEmpty ||
-            s.nome.toLowerCase().contains(query) ||
-            s.descricao.toLowerCase().contains(query) ||
-            s.categoria.toLowerCase().contains(query);
-        final matchEstadio = _filtroSelecionado == 'Todas' ||
-            (_filtroSelecionado == 'Novas' && s.estadio == 'Nova') ||
-            s.estadio == _filtroSelecionado;
-        return matchTexto && matchEstadio;
-      }).toList();
+      _loading = true;
+      _error = null;
     });
+
+    try {
+      final callable = _functions.httpsCallable('listStartups');
+      final result = await callable.call({
+        'stage': _filtroParaStage(_filtroSelecionado) ?? '',
+        'search': _searchController.text.trim(),
+      });
+
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final startups = List<Map<String, dynamic>>.from(
+        (data['data'] as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+
+      if (mounted) {
+        setState(() {
+          _startups = startups;
+          _startupsFiltradas = startups;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Erro ao carregar startups';
+          _loading = false;
+        });
+      }
+    }
   }
 
   void _onFiltroTap(String filtro) {
     setState(() => _filtroSelecionado = filtro);
-    _aplicarFiltros();
+    _loadStartups();
   }
 
-  void _onSearchChanged(String _) => _aplicarFiltros();
+  void _onSearchChanged(String _) => _loadStartups();
 
-  void _verDetalhes(StartupHome startup) {
-    // TO-DO: NAVEGAÇÃO PARA A TELA DE DETALHES DA STARTUP
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Abrir detalhes de ${startup.nome}')),
+  void _verDetalhes(Map<String, dynamic> startup) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StartupDetailsScreen(
+          startupId: startup['id'] as String,
+          startupName: startup['name'] as String,
+        ),
+      ),
     );
   }
 
-  Color _corEstadio(String estadio) {
-    switch (estadio) {
-      case 'Nova':
+  Color _corEstadio(String stage) {
+    switch (stage) {
+      case 'nova':
         return const Color(0xFF2E7D32);
-      case 'Em operação':
+      case 'em_operacao':
         return const Color(0xFF1565C0);
-      case 'Em expansão':
+      case 'em_expansao':
         return Colors.orange.shade700;
       default:
         return Colors.grey;
     }
+  }
+
+  String _labelEstadio(String stage) {
+    switch (stage) {
+      case 'nova':
+        return 'Nova';
+      case 'em_operacao':
+        return 'Em operação';
+      case 'em_expansao':
+        return 'Em expansão';
+      default:
+        return stage;
+    }
+  }
+
+  String _formatarCapital(int cents) {
+    final valor = cents / 100;
+    if (valor >= 1000) {
+      final milhar = valor / 1000;
+      return '${milhar % 1 == 0 ? milhar.toInt() : milhar.toStringAsFixed(1)} mil';
+    }
+    return valor.toStringAsFixed(0);
   }
 
   @override
@@ -152,8 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Row(
                 children: [
-                  // Seta voltar (mantida conforme Figma)
-                  const Icon(Icons.arrow_back, size: 22),
                   const Expanded(
                     child: Center(
                       child: Text(
@@ -166,8 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  // Espaço para equilibrar o ícone da esquerda
-                  const SizedBox(width: 22),
                 ],
               ),
             ),
@@ -182,10 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
                   hintText: 'Buscar startups',
-                  hintStyle:
-                  const TextStyle(color: Colors.grey, fontSize: 14),
-                  suffixIcon:
-                  const Icon(Icons.search, color: Colors.grey),
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                  suffixIcon: const Icon(Icons.search, color: Colors.grey),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                   enabledBorder: OutlineInputBorder(
@@ -194,11 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(32),
-                    borderSide: const BorderSide(
-                        color: Color(0xFF2E7D32), width: 2),
+                    borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 2),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 ),
               ),
             ),
@@ -219,12 +216,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   return GestureDetector(
                     onTap: () => _onFiltroTap(filtro),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: selecionado
-                            ? Colors.black
-                            : Colors.grey.shade300,
+                        color: selecionado ? Colors.black : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(32),
                       ),
                       child: Text(
@@ -232,9 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: selecionado
-                              ? Colors.white
-                              : Colors.black87,
+                          color: selecionado ? Colors.white : Colors.black87,
                         ),
                       ),
                     ),
@@ -250,10 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 'Clique na startup para saber mais',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
             const Padding(
@@ -272,26 +261,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // ── Lista de startups ──────────────────────────────
             Expanded(
-              child: _startupsFiltradas.isEmpty
+              child: _loading
+                  ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+              )
+                  : _error != null
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadStartups,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              )
+                  : _startupsFiltradas.isEmpty
                   ? const Center(
                 child: Text(
                   'Nenhuma startup encontrada.',
                   style: TextStyle(color: Colors.grey),
                 ),
               )
-                  : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                itemCount: _startupsFiltradas.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final startup = _startupsFiltradas[index];
-                  return _StartupCardHome(
-                    startup: startup,
-                    corEstadio: _corEstadio(startup.estadio),
-                    onTap: () => _verDetalhes(startup),
-                  );
-                },
+                  : RefreshIndicator(
+                onRefresh: _loadStartups,
+                color: const Color(0xFF2E7D32),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  itemCount: _startupsFiltradas.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final startup = _startupsFiltradas[index];
+                    final stage = startup['stage'] as String? ?? '';
+                    return _StartupCardHome(
+                      startup: startup,
+                      corEstadio: _corEstadio(stage),
+                      labelEstadio: _labelEstadio(stage),
+                      formatarCapital: _formatarCapital,
+                      onTap: () => _verDetalhes(startup),
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -304,18 +317,33 @@ class _HomeScreenState extends State<HomeScreen> {
 // ── Card de startup ──────────────────────────────────────────────
 
 class _StartupCardHome extends StatelessWidget {
-  final StartupHome startup;
+  final Map<String, dynamic> startup;
   final Color corEstadio;
+  final String labelEstadio;
+  final String Function(int) formatarCapital;
   final VoidCallback onTap;
 
   const _StartupCardHome({
     required this.startup,
     required this.corEstadio,
+    required this.labelEstadio,
+    required this.formatarCapital,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final name = startup['name'] as String? ?? '';
+    final tags = List<String>.from(startup['tags'] ?? []);
+    final capitalCents = startup['capitalRaisedCents'] as int? ?? 0;
+    final totalTokens = startup['totalTokensIssued'] as int? ?? 0;
+    final priceCents = startup['currentTokenPriceCents'] as int? ?? 0;
+    // Usa a primeira tag como categoria e shortDescription como descrição
+    final categoria = tags.isNotEmpty ? tags.first : '';
+    final descricao = startup['shortDescription'] as String? ?? '';
+    // Iniciais do nome para o avatar
+    final logoInicial = name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -342,7 +370,7 @@ class _StartupCardHome extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    startup.logoInicial,
+                    logoInicial,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -353,46 +381,36 @@ class _StartupCardHome extends StatelessWidget {
 
                 const SizedBox(width: 12),
 
-                // Nome, categoria e universidade
+                // Nome e categoria
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        startup.nome,
+                        name,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
                       ),
-                      Text(
-                        startup.categoria,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      if (categoria.isNotEmpty)
+                        Text(
+                          categoria,
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
-                      ),
-                      Text(
-                        startup.universidade,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
                     ],
                   ),
                 ),
 
                 // Badge do estágio
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
                     color: corEstadio,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    startup.estadio,
+                    labelEstadio,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -405,20 +423,16 @@ class _StartupCardHome extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Descrição
+            // Descrição curta
             Text(
-              startup.descricao,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black87,
-              ),
+              descricao,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
 
             const SizedBox(height: 12),
 
-            // Divisória
             Divider(color: Colors.grey.shade200, height: 1),
 
             const SizedBox(height: 12),
@@ -428,16 +442,15 @@ class _StartupCardHome extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _InfoColuna(
-                  valor: 'R\$ ${_formatarCapital(startup.capitalCaptado)}',
+                  valor: 'R\$ ${formatarCapital(capitalCents)}',
                   label: 'Captado',
                 ),
                 _InfoColuna(
-                  valor: '${startup.totalTokens}',
+                  valor: '$totalTokens',
                   label: 'Tokens',
                 ),
                 _InfoColuna(
-                  valor:
-                  'R\$ ${startup.valorPorToken.toStringAsFixed(2)}',
+                  valor: 'R\$ ${(priceCents / 100).toStringAsFixed(2)}',
                   label: 'Por token',
                 ),
               ],
@@ -446,14 +459,6 @@ class _StartupCardHome extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatarCapital(double valor) {
-    if (valor >= 1000) {
-      final milhar = valor / 1000;
-      return '${milhar % 1 == 0 ? milhar.toInt() : milhar.toStringAsFixed(1)} mil';
-    }
-    return valor.toStringAsFixed(0);
   }
 }
 

@@ -1,6 +1,7 @@
 /**
  * Tela Aplicar Investimento — MesclaInvest
- * Autor: [Nome do Autor] | RA: [RA do Autor]
+ * Autor: Rafaela Jacobsen Braga | RA: 25004280
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';

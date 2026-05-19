@@ -1,0 +1,81 @@
+/**
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
+ */
+
+import 'package:flutter/material.dart';
+import 'home_screen.dart';
+import 'profile_screen.dart';
+import 'wallet_screen.dart';
+
+class _BalcaoPlaceholder extends StatelessWidget {
+  const _BalcaoPlaceholder();
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(child: Text('Balcão', style: TextStyle(fontSize: 18, color: Colors.grey))),
+    );
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _indexAtual = 0;
+
+  // Telas em ordem
+  final List<Widget> _telas = const [
+    HomeScreen(),
+    _BalcaoPlaceholder(),
+    WalletScreen(),
+    ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Manter o estado de cada tela ao trocar de aba
+      body: IndexedStack(
+        index: _indexAtual,
+        children: _telas,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _indexAtual,
+        onTap: (index) => setState(() => _indexAtual = index),
+        selectedItemColor: const Color(0xFF2E7D32),
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Início',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart_outlined),
+            activeIcon: Icon(Icons.show_chart),
+            label: 'Balcão',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet),
+            label: 'Carteira',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+}
