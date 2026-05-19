@@ -31,7 +31,11 @@ jest.mock("firebase-admin/firestore", () => ({
   Timestamp: {},
 }));
 
+<<<<<<< HEAD
+import {createUserProfile, getUserProfile} from "../../../startups/repositories/userRepository";
+=======
 import {createUserProfile, getUserProfile} from "../../../users/repositories/userRepository";
+>>>>>>> develop
 
 describe("userRepository", () => {
   beforeEach(() => {

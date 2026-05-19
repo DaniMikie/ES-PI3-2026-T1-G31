@@ -1,6 +1,7 @@
 /**
  * Tela de Detalhes da Startup — MesclaInvest
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';
