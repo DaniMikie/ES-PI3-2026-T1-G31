@@ -1,6 +1,10 @@
 /**
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+<<<<<<< HEAD
+ * Autor: Felipe | RA: 
+=======
  * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
+>>>>>>> develop
  */
 
 import 'package:flutter/material.dart';
