@@ -61,6 +61,21 @@ export async function saveTransaction(uid: string, transaction: TransactionDocum
 }
 
 /**
+ * Busca o histórico de transações do usuário.
+ * Lê users/{uid}/transactions e ordena por data mais recente primeiro.
+ */
+export async function getTransactions(uid: string): Promise<TransactionDocument[]> {
+  const snapshot = await db
+    .collection("users")
+    .doc(uid)
+    .collection("transactions")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  return snapshot.docs.map((doc) => doc.data() as TransactionDocument);
+}
+
+/**
  * Busca a posição de tokens do usuário em uma startup específica.
  * Lê startups/{startupId}/investors/{uid}.
  * Retorna undefined se o usuário não for investidor daquela startup.
