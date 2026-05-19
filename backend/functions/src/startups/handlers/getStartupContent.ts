@@ -1,7 +1,11 @@
 /**
  *  Handler: getStartupContent — retorna conteúdo de uma startup (detalhes + perguntas)
  *  Autor: Kauan Aurelio Lasmar Dias / RA: 25001590
+<<<<<<< HEAD
+ * 
+=======
 
+>>>>>>> develop
  */
 
 import {HttpsError, onCall} from "firebase-functions/https";
@@ -15,7 +19,11 @@ import {
 
 export const getStartupContent = onCall(async (request) => {
 
+<<<<<<< HEAD
+    const user = requireAuthenticatedUser(request);
+=======
     requireAuthenticatedUser(request);
+>>>>>>> develop
 
     const startupId = normalizeString(request.data?.id);
 

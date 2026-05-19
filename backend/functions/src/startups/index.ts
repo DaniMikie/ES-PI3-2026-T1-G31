@@ -11,3 +11,4 @@ export {getStartupContent} from "./handlers/getStartupContent";
 export {getStartupDetails} from "./handlers/getStartupDetails";
 export {listStartups} from "./handlers/listStartups";
 export {seedStartupCatalog} from "./handlers/seedStartupCatalog";
+export {getStartupContent} from "./handlers/getStartupContent";
