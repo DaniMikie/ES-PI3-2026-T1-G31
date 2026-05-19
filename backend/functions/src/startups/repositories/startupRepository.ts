@@ -1,6 +1,10 @@
 /**
  * Repository de Startups — acesso ao Firestore
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ *
+ * Este arquivo é o ÚNICO que acessa a coleção "startups" no Firestore.
+ * Contém: dados demo, funções de leitura, escrita e seed.
+ * Os handlers nunca acessam o banco direto — sempre passam por aqui.
  */
 
 import {FieldValue} from "firebase-admin/firestore";
@@ -11,6 +15,7 @@ import {
 } from "../types";
 import {db} from "../shared/firebase";
 
+// Referência à coleção principal de startups no Firestore
 const startupsCollection = db.collection("startups");
 
 // ─── Dados de demonstração ───────────────────────────────────────────────────
@@ -145,6 +150,7 @@ const demoStartups: Array<{ id: string } & StartupDocument> = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Converte um StartupDocument completo em StartupListItem resumido (pra listagem)
 function toListItem(id: string, startup: StartupDocument): StartupListItem {
   return {
     id,
@@ -161,6 +167,7 @@ function toListItem(id: string, startup: StartupDocument): StartupListItem {
 
 // ─── Funções exportadas ───────────────────────────────────────────────────────
 
+// Busca até 100 startups e retorna versão resumida (pra catálogo)
 export async function listStartupItems(): Promise<StartupListItem[]> {
   const snapshot = await startupsCollection.limit(100).get();
   return snapshot.docs.map((doc) =>
@@ -168,6 +175,7 @@ export async function listStartupItems(): Promise<StartupListItem[]> {
   );
 }
 
+// Busca uma startup pelo ID. Retorna undefined se não existir.
 export async function getStartupById(
   startupId: string
 ): Promise<StartupDocument | undefined> {
@@ -178,6 +186,7 @@ export async function getStartupById(
   return startupSnapshot.data() as StartupDocument;
 }
 
+// Verifica se o usuário é investidor de uma startup (tem documento em investors)
 export async function userIsInvestor(
   startupId: string,
   uid: string
@@ -190,6 +199,7 @@ export async function userIsInvestor(
   return investorSnapshot.exists;
 }
 
+// Busca perguntas públicas de uma startup, ordenadas da mais recente pra mais antiga
 export async function listPublicQuestions(startupId: string) {
   const questionsSnapshot = await startupsCollection
     .doc(startupId)
@@ -211,6 +221,7 @@ export async function listPublicQuestions(startupId: string) {
     );
 }
 
+// Cria uma pergunta na subcoleção questions da startup. Retorna o ID gerado.
 export async function createQuestion(
   startupId: string,
   question: StartupQuestionDocument
@@ -222,6 +233,8 @@ export async function createQuestion(
   return questionRef.id;
 }
 
+// Cria as 5 startups demo no Firestore usando batch write (escrita em lote).
+// merge: true = se já existir, atualiza em vez de sobrescrever.
 export async function seedDemoStartups(): Promise<string[]> {
   const batch = db.batch();
 

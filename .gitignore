@@ -26,3 +26,15 @@ dist/
 
 #firebase_options
 mobile/lib/firebase_options.dart
+
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# iOS/macOS Pods
+ios/Pods/
+macos/Pods/
+mobile/ios/Pods/
+mobile/macos/Pods/
