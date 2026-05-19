@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class InvestmentScreen extends StatefulWidget {
   final String startupId;
@@ -46,16 +47,48 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
     });
   }
 
-  void _avancar() {
+  void _avancar() async {
     if (_formKey.currentState!.validate()) {
-      // TO-DO: INTEGRAR COMPRA DE TOKENS COM O BACKEND
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Investindo R\$ ${_valorController.text} em ${widget.startupNome} — $_quantidadeTokens tokens',
-          ),
-        ),
-      );
+      try {
+        final functions = FirebaseFunctions.instance;
+        final callable = functions.httpsCallable('buyTokens');
+        final result = await callable.call({
+          'startupId': widget.startupId,
+          'quantity': _quantidadeTokens,
+        });
+
+        final data = Map<String, dynamic>.from(result.data as Map);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Compra realizada! ${data['quantity']} tokens de ${widget.startupNome}',
+              ),
+              backgroundColor: const Color(0xFF2E7D32),
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      } on FirebaseFunctionsException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message ?? 'Erro ao comprar tokens'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erro inesperado ao comprar tokens'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

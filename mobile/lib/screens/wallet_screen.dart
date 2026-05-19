@@ -48,31 +48,31 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Future<void> _loadWallet() async {
     try {
-      final callable = _functions.httpsCallable('getUserWallet');
+      final callable = _functions.httpsCallable('getWallet');
       final result = await callable.call();
 
       final data = Map<String, dynamic>.from(result.data as Map);
-      final wallet = Map<String, dynamic>.from(data['data']);
 
-      final investimentosRaw = List<Map<String, dynamic>>.from(
-        wallet['investimentos'] ?? [],
+      final positions = List<Map<String, dynamic>>.from(
+        (data['positions'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
       );
 
       if (!mounted) return;
 
       setState(() {
-        _saldo = (wallet['saldo'] ?? 0).toDouble();
-        _totalStartups = wallet['totalStartups'] ?? 0;
-        _totalTokens = wallet['totalTokens'] ?? 0;
+        _saldo = (data['balanceCents'] ?? 0) / 100;
+        _totalStartups = data['totalStartups'] ?? 0;
+        _totalTokens = data['totalTokens'] ?? 0;
 
-        _investimentos = investimentosRaw.map((inv) {
+        _investimentos = positions.map((pos) {
+          final startupId = pos['startupId'] as String? ?? '';
           return Investimento(
-            startupId: inv['startupId'] ?? '',
-            startupNome: inv['startupNome'] ?? '',
-            logoInicial: inv['logoInicial'] ?? 'ST',
-            quantidadeTokens: inv['quantidadeTokens'] ?? 0,
-            valorTotal: (inv['valorTotal'] ?? 0).toDouble(),
-            variacaoPercent: (inv['variacaoPercent'] ?? 0).toDouble(),
+            startupId: startupId,
+            startupNome: startupId,
+            logoInicial: startupId.length >= 2 ? startupId.substring(0, 2).toUpperCase() : 'ST',
+            quantidadeTokens: pos['quantity'] as int? ?? 0,
+            valorTotal: ((pos['totalInvestedCents'] as int? ?? 0) / 100),
+            variacaoPercent: 0,
           );
         }).toList();
       });
