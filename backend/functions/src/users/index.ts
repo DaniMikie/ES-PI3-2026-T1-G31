@@ -6,3 +6,4 @@
 export {createUser} from "./handlers/createUser";
 export {getUserProfile} from "./handlers/getUserProfile";
 export {updateMfaPreference} from "./handlers/updateMfaPreference";
+export {updateUserProfile} from "./handlers/updateUserProfile";
