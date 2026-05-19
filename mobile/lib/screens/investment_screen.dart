@@ -58,12 +58,13 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
         });
 
         final data = Map<String, dynamic>.from(result.data as Map);
+        final buyData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Compra realizada! ${data['quantity']} tokens de ${widget.startupNome}',
+                'Compra realizada! ${buyData['quantity']} tokens de ${widget.startupNome}',
               ),
               backgroundColor: const Color(0xFF2E7D32),
             ),

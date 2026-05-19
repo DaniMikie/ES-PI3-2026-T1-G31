@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,6 +26,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _viewPassword = false;
   bool _viewConfirmPassword = false;
+
+  final _cpfMask = MaskTextInputFormatter(
+    mask: '###.###.###-##',
+    filter: {'#': RegExp(r'[0-9]')},
+  );
+  final _phoneMask = MaskTextInputFormatter(
+    mask: '(##) #####-####',
+    filter: {'#': RegExp(r'[0-9]')},
+  );
 
   @override
   void dispose() {
@@ -169,6 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _cpfController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [_cpfMask],
                     decoration: const InputDecoration(
                       labelText: 'CPF*',
                       hintText: '000.000.000-00',
@@ -178,6 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu CPF';
+                      if (_cpfMask.getUnmaskedText().length != 11) return 'CPF incompleto';
                       return null;
                     },
                   ),
@@ -187,6 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [_phoneMask],
                     decoration: const InputDecoration(
                       labelText: 'Telefone celular*',
                       hintText: '(00) 00000-0000',
@@ -196,6 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu telefone';
+                      if (_phoneMask.getUnmaskedText().length != 11) return 'Telefone incompleto';
                       return null;
                     },
                   ),
