@@ -1,13 +1,21 @@
 /**
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+<<<<<<< HEAD
  * Autor: Felipe | RA: 
+=======
+ * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
+>>>>>>> develop
  */
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
-import 'catalog_screen.dart';
+<<<<<<< HEAD
+=======
+import 'home_screen.dart';
+import 'main_screen.dart';
+>>>>>>> develop
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,9 +45,14 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
         if (mounted) {
+<<<<<<< HEAD
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+=======
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const CatalogScreen()),
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+>>>>>>> develop
           );
         }
       } on FirebaseAuthException catch (e) {
