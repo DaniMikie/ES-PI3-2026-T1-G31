@@ -157,16 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Center(
-                      child: Text(
-                        'MesclaInvest',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
+                      child: Image.asset('assets/images/logo.png', width: 180),
                     ),
                   ),
                 ],

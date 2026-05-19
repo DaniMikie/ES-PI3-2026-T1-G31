@@ -113,18 +113,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
-                  const Center(
-                    child: Text(
-                      'MesclaInvest',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 20),
+                  Center(child: Image.asset('assets/images/logo.png', width: 200)),
+                  const SizedBox(height: 24),
                   const Text(
                     'Criar conta',
                     style: TextStyle(
