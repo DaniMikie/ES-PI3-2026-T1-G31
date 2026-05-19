@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'investment_screen.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
   final String startupId;
@@ -57,6 +58,98 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         });
       }
     }
+  }
+
+  void _sellTokens() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Vender tokens'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(hintText: 'Quantidade de tokens'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                final qty = int.tryParse(controller.text);
+                if (qty == null || qty <= 0) return;
+                Navigator.pop(context);
+                try {
+                  final callable = _functions.httpsCallable('sellTokens');
+                  await callable.call({'startupId': widget.startupId, 'quantity': qty});
+                  _loadDetails();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$qty tokens vendidos!'), backgroundColor: const Color(0xFF2E7D32)),
+                    );
+                  }
+                } on FirebaseFunctionsException catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.message ?? 'Erro ao vender'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Vender', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _sendPrivateQuestion() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Pergunta privada'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: const InputDecoration(hintText: 'Digite sua pergunta...'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                if (controller.text.trim().isEmpty) return;
+                Navigator.pop(context);
+                try {
+                  final callable = _functions.httpsCallable('createStartupQuestion');
+                  await callable.call({
+                    'startupId': widget.startupId,
+                    'text': controller.text.trim(),
+                    'visibility': 'privada',
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Pergunta enviada!'), backgroundColor: Color(0xFF2E7D32)),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Erro ao enviar pergunta'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              child: const Text('Enviar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _stageLabel(String stage) {
@@ -265,6 +358,72 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                           visualDensity: VisualDensity.compact,
                         )).toList(),
                       ),
+
+                      const SizedBox(height: 24),
+
+                      // Botão Investir (todos os usuários)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final priceCents = _startup!['currentTokenPriceCents'] as int? ?? 0;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => InvestmentScreen(
+                                  startupId: widget.startupId,
+                                  startupNome: _startup!['name'] as String? ?? '',
+                                  valorPorToken: priceCents / 100,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2E7D32),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          child: const Text('Investir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+
+                      // Botões exclusivos de investidor
+                      if (_startup!['access'] != null && _startup!['access']['isInvestor'] == true) ...[
+                        const SizedBox(height: 12),
+
+                        // Botão Vender
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _sellTokens,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            ),
+                            child: const Text('Vender tokens', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Botão Pergunta privada
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _sendPrivateQuestion,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF2E7D32),
+                              side: const BorderSide(color: Color(0xFF2E7D32)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                            ),
+                            child: const Text('Enviar pergunta privada', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 32),
                     ],
