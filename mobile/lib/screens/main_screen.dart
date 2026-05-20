@@ -36,14 +36,25 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
+  Widget _buildBody() {
+    // Wallet e Profile sempre recriam pra pegar dados atualizados
+    switch (_indexAtual) {
+      case 2:
+        return const WalletScreen();
+      case 3:
+        return const ProfileScreen();
+      default:
+        return IndexedStack(
+          index: _indexAtual,
+          children: _telas,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Manter o estado de cada tela ao trocar de aba
-      body: IndexedStack(
-        index: _indexAtual,
-        children: _telas,
-      ),
+      body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indexAtual,
         onTap: (index) => setState(() => _indexAtual = index),

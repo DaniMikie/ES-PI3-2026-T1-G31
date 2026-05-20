@@ -15,6 +15,7 @@ import {
   listPublicQuestions,
   userIsInvestor,
 } from "../repositories/startupRepository";
+import {getTokenPosition} from "../../exchange/repositories/exchangeRepository";
 
 export const getStartupDetails = onCall(async (request) => {
   // Verifica login e pega dados do usuário
@@ -38,11 +39,9 @@ export const getStartupDetails = onCall(async (request) => {
 
   // Verifica se o usuário é investidor dessa startup
   const isInvestor = await userIsInvestor(startupId, user.uid);
-
-  // Busca perguntas públicas da startup
   const questions = await listPublicQuestions(startupId);
+  const tokenPosition = await getTokenPosition(startupId, user.uid);
 
-  // Retorna tudo junto: dados + perguntas + permissões
   return {
     data: {
       id: startupId,
@@ -50,11 +49,12 @@ export const getStartupDetails = onCall(async (request) => {
       createdAt: startup.createdAt?.toDate().toISOString() ?? null,
       updatedAt: startup.updatedAt?.toDate().toISOString() ?? null,
       publicQuestions: questions,
-      // Permissões baseadas no status de investidor
       access: {
         isInvestor,
         canTradeTokens: isInvestor,
         canSendPrivateQuestions: isInvestor,
+        tokenQuantity: tokenPosition?.quantity ?? 0,
+        totalInvestedCents: tokenPosition?.totalInvestedCents ?? 0,
       },
     },
   };

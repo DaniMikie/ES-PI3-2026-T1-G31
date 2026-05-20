@@ -1,10 +1,6 @@
 /**
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-<<<<<<< HEAD
- * Autor: Felipe | RA: 
-=======
  * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
->>>>>>> develop
  */
 
 import 'package:flutter/material.dart';
@@ -68,21 +64,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
 
                   // Logo (texto por enquanto)
-                  const Center(
-                    child: Text(
-                      'MesclaInvest',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
+                  Center(child: Image.asset('assets/images/logo.png', width: 200)),
 
-                  const SizedBox(height: 64),
+                  const SizedBox(height: 32),
 
                   // Título
                   const Text(

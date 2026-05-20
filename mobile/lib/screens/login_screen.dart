@@ -1,21 +1,13 @@
 /**
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-<<<<<<< HEAD
- * Autor: Felipe | RA: 
-=======
  * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
->>>>>>> develop
  */
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
-<<<<<<< HEAD
-=======
-import 'home_screen.dart';
 import 'main_screen.dart';
->>>>>>> develop
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,14 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
         if (mounted) {
-<<<<<<< HEAD
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login realizado com sucesso!')),
-=======
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen()),
->>>>>>> develop
           );
         }
       } on FirebaseAuthException catch (e) {
@@ -103,22 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
-                  //Logotipo (temp texto)
-                  const Center(
-                    child: Text(
-                      'MesclaInvest',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  //Título Login
+                  const SizedBox(height: 20),
+                  Center(child: Image.asset('assets/images/logo.png', width: 200)),
+                  const SizedBox(height: 24),
                   const Text(
                     'Login',
                     style: TextStyle(
@@ -127,21 +101,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Color(0xFF2E7D32),
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
-                  //Subtítulo
                   const Text(
                     '(*)Preencha os campos obrigatórios',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF2E7D32),
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32)),
                   ),
-
                   const SizedBox(height: 32),
-
-                  // Campo Email
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -149,33 +114,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Email*',
                       hintText: 'seuemail@exemplo.com',
                       prefixIcon: Icon(Icons.email_outlined),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe seu e-mail';
-                      }
-                      if (!value.contains('@')) {
-                        return 'E-mail inválido';
-                      }
+                      if (value == null || value.isEmpty) return 'Informe seu e-mail';
+                      if (!value.contains('@')) return 'E-mail inválido';
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Campo Senha
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_viewPassword,
@@ -183,98 +131,48 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Senha*',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _viewPassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _viewPassword = !_viewPassword;
-                          });
-                        },
+                        icon: Icon(_viewPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        onPressed: () => setState(() => _viewPassword = !_viewPassword),
                       ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
-                      ),
-                      errorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                      focusedErrorBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
-                      ),
+                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe sua senha';
-                      }
+                      if (value == null || value.isEmpty) return 'Informe sua senha';
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Esqueci minha senha
                   Center(
                     child: TextButton(
                       onPressed: _forgotPassword,
-                      child: const Text(
-                        'Esqueci minha senha',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                      ),
+                      child: const Text('Esqueci minha senha', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Botão Entrar
                   ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                     ),
-                    child: const Text(
-                      'Entrar',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    child: const Text('Entrar', style: TextStyle(fontSize: 16)),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Criar nova conta
                   Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Não tem cadastro? ',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        const Text('Não tem cadastro? ', style: TextStyle(color: Colors.grey)),
                         GestureDetector(
                           onTap: _createAccount,
-                          child: const Text(
-                            'Criar nova conta',
-                            style: TextStyle(
-                              color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: const Text('Criar nova conta', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 32),
                 ],
               ),

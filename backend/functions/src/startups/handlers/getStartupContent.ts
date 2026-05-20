@@ -1,7 +1,6 @@
 /**
  *  Handler: getStartupContent — retorna conteúdo de uma startup (detalhes + perguntas)
  *  Autor: Kauan Aurelio Lasmar Dias / RA: 25001590
-
  */
 
 import {HttpsError, onCall} from "firebase-functions/https";
