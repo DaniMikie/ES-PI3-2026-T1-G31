@@ -1,5 +1,9 @@
+/**
+ * Tela Perfil — MesclaInvest
+ * Autor: Rafaela Jacobsen Braga | RA: 25004280
+ */
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,9 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserProfile() async {
     try {
       final callable = _functions.httpsCallable('getUserProfile');
-
       final result = await callable.call();
-
       final data = Map<String, dynamic>.from(result.data as Map);
       final user = Map<String, dynamic>.from(data['data']);
 
@@ -46,7 +48,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'cpf': user['cpf'] ?? '',
           'telefone': user['telefone'] ?? '',
         };
-
         _mfaAtivo = user['mfaAtivo'] ?? false;
       });
     } catch (e) {
@@ -55,6 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _alterarDado() {
+    // TO-DO: NAVEGAÇÃO PARA TELA DE EDIÇÃO DE DADOS DO USUÁRIO
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navegar para edição de dados')),
     );
@@ -66,10 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final callable = _functions.httpsCallable('updateMfaPreference');
-
-      await callable.call({
-        'mfaAtivo': valor,
-      });
+      await callable.call({'mfaAtivo': valor});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -79,15 +78,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     } catch (e) {
-      // rollback se der erro
+      // Rollback se der erro
       setState(() => _mfaAtivo = !valor);
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao atualizar MFA'),
-        ),
+        const SnackBar(content: Text('Erro ao atualizar MFA')),
       );
     }
+  }
+
+  void _sairDoPerfil() {
+    // TO-DO: LOGOUT DO USUÁRIO (Firebase Auth signOut)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saindo do perfil...')),
+    );
   }
 
   @override
@@ -106,6 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     const SizedBox(height: 24),
 
+                    // ── Cabeçalho ────────────────────────────────
                     Row(
                       children: [
                         GestureDetector(
@@ -130,6 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 32),
 
+                    // ── Título Seus dados ─────────────────────────
                     const Text(
                       'Seus dados',
                       style: TextStyle(
@@ -141,6 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 28),
 
+                    // ── Campos de dados (somente leitura) ─────────
                     _CampoInfo(
                       label: 'Nome Completo*',
                       valor: _dadosUsuario['nomeCompleto']!,
@@ -169,6 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 20),
 
+                    // ── Campo Senha (sem valor visível) ────────────
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -190,38 +197,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Divider(
-                          color: Colors.grey.shade300,
-                          height: 1,
-                        ),
+                        Divider(color: Colors.grey.shade300, height: 1),
                       ],
                     ),
 
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
 
-                    ElevatedButton(
-                      onPressed: _alterarDado,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding:
-                        const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Alterar dado',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    // ── Título Segurança ──────────────────────────
+                    const Text(
+                      'Segurança',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32),
                       ),
                     ),
 
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 16),
 
+                    // ── Toggle MFA ────────────────────────────────
                     Row(
                       children: [
                         Switch(
@@ -243,6 +237,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
 
+                    const SizedBox(height: 24),
+
+                    // ── Botão Alterar dados ───────────────────────
+                    ElevatedButton(
+                      onPressed: _alterarDado,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Alterar dados',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── Botão Sair desse perfil ───────────────────
+                    ElevatedButton(
+                      onPressed: _sairDoPerfil,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Sair desse perfil',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -254,6 +294,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+// ── Widget auxiliar: campo de dado somente leitura ───────────────
 
 class _CampoInfo extends StatelessWidget {
   final String label;
@@ -268,10 +310,7 @@ class _CampoInfo extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
         ),
         const SizedBox(height: 6),
         Text(
@@ -283,10 +322,7 @@ class _CampoInfo extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Divider(
-          color: Colors.grey.shade300,
-          height: 1,
-        ),
+        Divider(color: Colors.grey.shade300, height: 1),
       ],
     );
   }
