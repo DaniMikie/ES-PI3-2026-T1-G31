@@ -1,5 +1,9 @@
 /**
  * Tela Perfil — MesclaInvest
+ * Autor: Rafaela Jacobsen Braga | RA: 25004280
+ */
+
+import 'package:flutter/material.dart';
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
@@ -293,6 +297,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _sairDoPerfil() {
+    // TO-DO: LOGOUT DO USUÁRIO (Firebase Auth signOut)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saindo do perfil...')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -306,12 +317,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
+
+                    // ── Cabeçalho ────────────────────────────────
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(Icons.arrow_back, size: 22),
+                        ),
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'MesclaInvest',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 22),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ── Título Seus dados ─────────────────────────
                     const Text(
                       'Seus dados',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                     ),
                     const SizedBox(height: 28),
-                    _CampoInfo(label: 'Nome Completo*', valor: _dadosUsuario['nomeCompleto']!),
+
+                    // ── Campos de dados (somente leitura) ─────────
+                    _CampoInfo(
+                      label: 'Nome Completo*',
+                      valor: _dadosUsuario['nomeCompleto']!,
+                    ),
+
                     const SizedBox(height: 20),
                     _CampoInfo(label: 'Email*', valor: _dadosUsuario['email']!),
                     const SizedBox(height: 20),
@@ -319,6 +363,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 20),
                     _CampoInfo(label: 'Telefone*', valor: _dadosUsuario['telefone']!),
                     const SizedBox(height: 20),
+
+                    // ── Campo Senha (sem valor visível) ────────────
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -328,46 +374,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 8),
                         Divider(color: Colors.grey.shade300, height: 1),
                         const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _alterarSenha,
-                          child: const Text(
-                            'Alterar senha',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                        Divider(color: Colors.grey.shade300, height: 1),
                       ],
                     ),
-                    const SizedBox(height: 36),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _alterarDados,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                          elevation: 0,
-                        ),
-                        child: const Text('Alterar dados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+                    const SizedBox(height: 32),
+
+                    // ── Título Segurança ──────────────────────────
+                    const Text(
+                      'Segurança',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32),
                       ),
                     ),
+
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _sairDoPerfil,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                          elevation: 0,
-                        ),
-                        child: const Text('Sair desse perfil', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
+
+                    // ── Toggle MFA ────────────────────────────────
                     Row(
                       children: [
                         Switch(
@@ -382,6 +407,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Text('Ativar Autenticação Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
                       ],
                     ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Botão Alterar dados ───────────────────────
+                    ElevatedButton(
+                      onPressed: _alterarDado,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Alterar dados',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── Botão Sair desse perfil ───────────────────
+                    ElevatedButton(
+                      onPressed: _sairDoPerfil,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Sair desse perfil',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -390,6 +462,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+// ── Widget auxiliar: campo de dado somente leitura ───────────────
 
 class _CampoInfo extends StatelessWidget {
   final String label;
@@ -401,7 +475,10 @@ class _CampoInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
+        ),
         const SizedBox(height: 6),
         Text(
           valor.isNotEmpty ? valor : 'Não informado',
