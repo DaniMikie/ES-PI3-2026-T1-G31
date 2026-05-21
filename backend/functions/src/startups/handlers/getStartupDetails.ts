@@ -13,6 +13,7 @@ import {normalizeString} from "../shared/validation";
 import {
   getStartupById,
   listPublicQuestions,
+  listPrivateQuestions,
   userIsInvestor,
 } from "../repositories/startupRepository";
 import {getTokenPosition} from "../../exchange/repositories/exchangeRepository";
@@ -40,6 +41,7 @@ export const getStartupDetails = onCall(async (request) => {
   // Verifica se o usuário é investidor dessa startup
   const isInvestor = await userIsInvestor(startupId, user.uid);
   const questions = await listPublicQuestions(startupId);
+  const privateQuestions = isInvestor ? await listPrivateQuestions(startupId, user.uid) : [];
   const tokenPosition = await getTokenPosition(startupId, user.uid);
 
   return {
@@ -49,6 +51,7 @@ export const getStartupDetails = onCall(async (request) => {
       createdAt: startup.createdAt?.toDate().toISOString() ?? null,
       updatedAt: startup.updatedAt?.toDate().toISOString() ?? null,
       publicQuestions: questions,
+      privateQuestions: privateQuestions,
       access: {
         isInvestor,
         canTradeTokens: isInvestor,
