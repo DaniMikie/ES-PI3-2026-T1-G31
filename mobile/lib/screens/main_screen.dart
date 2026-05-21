@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'wallet_screen.dart';
-import 'balcao_screen.dart';
+import 'market_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   // Telas em ordem
   final List<Widget> _telas = const [
     HomeScreen(),
-    BalcaoScreen(),
+    MarketScreen(),
     WalletScreen(),
     ProfileScreen(),
   ];
