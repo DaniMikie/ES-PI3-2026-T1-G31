@@ -6,17 +6,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'wallet_screen.dart';
-
-class _BalcaoPlaceholder extends StatelessWidget {
-  const _BalcaoPlaceholder();
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(child: Text('Balcão', style: TextStyle(fontSize: 18, color: Colors.grey))),
-    );
-  }
-}
+import 'balcao_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -31,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   // Telas em ordem
   final List<Widget> _telas = const [
     HomeScreen(),
-    _BalcaoPlaceholder(),
+    BalcaoScreen(),
     WalletScreen(),
     ProfileScreen(),
   ];
