@@ -266,6 +266,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final executiveSummary = _startup!['executiveSummary'] as String? ?? '';
     final founders = List<Map<String, dynamic>>.from((_startup!['founders'] as List?)?.map((f) => Map<String, dynamic>.from(f as Map)) ?? []);
     final questions = List<Map<String, dynamic>>.from((_startup!['publicQuestions'] as List?)?.map((q) => Map<String, dynamic>.from(q as Map)) ?? []);
+    final privateQuestions = List<Map<String, dynamic>>.from((_startup!['privateQuestions'] as List?)?.map((q) => Map<String, dynamic>.from(q as Map)) ?? []);
     final isInvestor = _startup!['access']?['isInvestor'] == true;
 
     return Column(
@@ -313,6 +314,17 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               ],
             ),
           )),
+        const SizedBox(height: 12),
+        // Botao de pergunta publica (qualquer usuario)
+        GestureDetector(
+          onTap: () => _sendQuestion(visibility: 'publica'),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(border: Border.all(color: const Color(0xFF2E7D32)), borderRadius: BorderRadius.circular(12)),
+            child: const Text('Fazer uma pergunta publica', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+          ),
+        ),
         const SizedBox(height: 24),
 
         // Sócios ativos
@@ -364,6 +376,28 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           const SizedBox(height: 24),
           // Perguntas privadas
           const Text('Perguntas e respostas privadas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+          const SizedBox(height: 12),
+          if (privateQuestions.isEmpty)
+            const Text('Nenhuma pergunta privada ainda', style: TextStyle(color: Colors.grey))
+          else
+            ...privateQuestions.map((q) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(q['text'] as String? ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  if (q['answer'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(q['answer'] as String, style: const TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontStyle: FontStyle.italic)),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    const Text('Aguardando resposta...', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+                  ],
+                ],
+              ),
+            )),
           const SizedBox(height: 12),
           // Campo de pergunta privada
           Container(

@@ -221,6 +221,29 @@ export async function listPublicQuestions(startupId: string) {
     );
 }
 
+// Busca perguntas privadas de uma startup feitas por um usuario especifico
+export async function listPrivateQuestions(startupId: string, uid: string) {
+  const questionsSnapshot = await startupsCollection
+    .doc(startupId)
+    .collection("questions")
+    .where("visibility", "==", "privada")
+    .where("authorUid", "==", uid)
+    .limit(50)
+    .get();
+
+  return questionsSnapshot.docs
+    .map((doc) => ({
+      id: doc.id,
+      text: doc.get("text"),
+      answer: doc.get("answer") ?? null,
+      answeredAt: doc.get("answeredAt")?.toDate?.()?.toISOString?.() ?? null,
+      createdAt: doc.get("createdAt")?.toDate?.()?.toISOString?.() ?? null,
+    }))
+    .sort((left, right) =>
+      String(right.createdAt ?? "").localeCompare(String(left.createdAt ?? ""))
+    );
+}
+
 // Cria uma pergunta na subcoleção questions da startup. Retorna o ID gerado.
 export async function createQuestion(
   startupId: string,
@@ -253,5 +276,28 @@ export async function seedDemoStartups(): Promise<string[]> {
   }
 
   await batch.commit();
+
+  // Seed de perguntas publicas com respostas
+  const demoQuestions = [
+    {startupId: "greenpulse", text: "Como a IA identifica oportunidades de reducao?", answer: "Utilizamos algoritmos de machine learning que analisam padroes de consumo em tempo real."},
+    {startupId: "greenpulse", text: "Qual o retorno medio para empresas clientes?", answer: "Em media, nossos clientes reduzem 25% dos custos energeticos no primeiro ano."},
+    {startupId: "medconnect", text: "Como funciona o agendamento de teleconsultas?", answer: "O paciente escolhe a especialidade e horario disponivel, e a consulta acontece por video."},
+    {startupId: "agrosmart", text: "Os sensores funcionam em areas sem internet?", answer: "Sim, os sensores armazenam dados localmente e sincronizam quando ha conexao."},
+    {startupId: "eduflex", text: "A plataforma atende qual faixa etaria?", answer: "Atendemos desde o ensino fundamental ate o superior, com conteudo adaptativo."},
+    {startupId: "fintoken", text: "Quais blockchains sao suportadas?", answer: null},
+  ];
+
+  for (const q of demoQuestions) {
+    await startupsCollection.doc(q.startupId).collection("questions").add({
+      text: q.text,
+      visibility: "publica",
+      authorUid: "seed-system",
+      authorEmail: "sistema@mesclainvest.com",
+      answer: q.answer,
+      answeredAt: q.answer ? FieldValue.serverTimestamp() : null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+
   return demoStartups.map((startup) => startup.id);
 }
