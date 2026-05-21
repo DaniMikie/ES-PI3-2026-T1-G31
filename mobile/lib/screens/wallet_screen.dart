@@ -210,10 +210,10 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       ),
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                             // Título Análise
                             const Text('Análise', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
                             const SizedBox(height: 16),

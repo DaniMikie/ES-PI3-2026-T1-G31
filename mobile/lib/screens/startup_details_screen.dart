@@ -231,7 +231,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 children: [
                   _buildTab('A Startup', 0),
                   const SizedBox(width: 12),
-                  _buildTab('Adquirir tokens', 1),
+                  _buildTab('Os tokens', 1),
                 ],
               ),
               const SizedBox(height: 24),
@@ -356,7 +356,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 ElevatedButton(
                   onPressed: () => setState(() => _tabIndex = 1),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
-                  child: const Text('Ir para o balcão'),
+                  child: const Text('Ir para os tokens'),
                 ),
               ],
             ),
@@ -463,8 +463,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
+                    // Volta pra MainScreen e vai pra aba Carteira (index 2)
                     Navigator.pop(context);
-                    // Navega pra aba Carteira (index 2 no MainScreen)
                   },
                   child: const Text('Consulte seu saldo aqui', style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ),
