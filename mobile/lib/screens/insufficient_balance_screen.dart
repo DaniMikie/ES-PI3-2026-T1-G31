@@ -1,7 +1,8 @@
-/**
+/*
  * Tela Saldo Insuficiente — MesclaInvest
  * Autor: Rafaela Jacobsen Braga | RA: 25004280
  */
+
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -25,8 +26,7 @@ class InsufficientBalanceScreen extends StatefulWidget {
       _InsufficientBalanceScreenState();
 }
 
-class _InsufficientBalanceScreenState
-    extends State<InsufficientBalanceScreen> {
+class _InsufficientBalanceScreenState extends State<InsufficientBalanceScreen> {
   final _functions = FirebaseFunctions.instance;
 
   bool _loadingCarteira = false;
@@ -35,16 +35,16 @@ class _InsufficientBalanceScreenState
     setState(() => _loadingCarteira = true);
 
     try {
-      final callable = _functions.httpsCallable('getUserWallet');
+      final callable = _functions.httpsCallable('getWallet');
       await callable.call();
 
       if (!mounted) return;
       setState(() => _loadingCarteira = false);
 
       // TO-DO: NAVEGAÇÃO PARA A TELA DE CARTEIRA
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Navegar para carteira')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Navegar para carteira')));
     } catch (e) {
       if (!mounted) return;
       setState(() => _loadingCarteira = false);
@@ -96,8 +96,7 @@ class _InsufficientBalanceScreenState
                           children: [
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
-                              child:
-                              const Icon(Icons.arrow_back, size: 22),
+                              child: const Icon(Icons.arrow_back, size: 22),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -127,8 +126,7 @@ class _InsufficientBalanceScreenState
 
                         const Text(
                           'Quanto gostaria de investir?',
-                          style:
-                          TextStyle(fontSize: 14, color: Colors.grey),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -164,7 +162,7 @@ class _InsufficientBalanceScreenState
             ),
 
             // ── Overlay escuro semitransparente ───────────────
-            Container(color: Colors.black.withOpacity(0.15)),
+            Container(color: Colors.black.withValues(alpha: 0.15)),
 
             // ── Modal de saldo insuficiente ────────────────────
             Positioned(
@@ -180,7 +178,7 @@ class _InsufficientBalanceScreenState
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.10),
+                        color: Colors.black.withValues(alpha: 0.10),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -205,35 +203,33 @@ class _InsufficientBalanceScreenState
                       // Subtítulo + link carteira
                       const Text(
                         'Quer saber quanto possui?',
-                        style:
-                        TextStyle(fontSize: 13, color: Colors.grey),
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
                       ),
 
                       const SizedBox(height: 4),
 
                       GestureDetector(
-                        onTap:
-                        _loadingCarteira ? null : _consultarCarteira,
+                        onTap: _loadingCarteira ? null : _consultarCarteira,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _loadingCarteira
                                 ? const SizedBox(
-                              height: 14,
-                              width: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF2E7D32),
-                              ),
-                            )
+                                    height: 14,
+                                    width: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF2E7D32),
+                                    ),
+                                  )
                                 : const Text(
-                              'Clique para consultar sua carteira',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32),
-                              ),
-                            ),
+                                    'Clique para consultar sua carteira',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2E7D32),
+                                    ),
+                                  ),
                             const SizedBox(width: 4),
                             const Icon(
                               Icons.arrow_forward,
@@ -254,8 +250,7 @@ class _InsufficientBalanceScreenState
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2E7D32),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(32),
                             ),
