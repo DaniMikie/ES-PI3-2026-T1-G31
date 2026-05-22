@@ -3,9 +3,13 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
+export {acceptOffer} from "./handlers/acceptOffer";
 export {addCredits} from "./handlers/addCredits";
 export {buyTokens} from "./handlers/buyTokens";
+export {cancelOffer} from "./handlers/cancelOffer";
+export {createOffer} from "./handlers/createOffer";
 export {getTokenHistory} from "./handlers/getTokenHistory";
 export {getWallet} from "./handlers/getWallet";
+export {listOffers} from "./handlers/listOffers";
 export {listTransactions} from "./handlers/listTransactions";
 export {sellTokens} from "./handlers/sellTokens";
