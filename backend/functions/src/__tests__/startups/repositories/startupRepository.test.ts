@@ -15,11 +15,19 @@ jest.mock("firebase-admin/auth", () => ({
 
 const mockGet = jest.fn();
 const mockAdd = jest.fn();
-const mockDoc = jest.fn();
 const mockSet = jest.fn();
 const mockCommit = jest.fn();
 const mockWhere = jest.fn();
 const mockLimit = jest.fn();
+
+const mockSubCollection = jest.fn(() => ({
+  add: mockAdd,
+}));
+
+const mockDoc = jest.fn(() => ({
+  collection: mockSubCollection,
+  get: mockGet,
+}));
 
 const mockCollection = jest.fn(() => ({
   limit: mockLimit,
@@ -99,7 +107,7 @@ describe("startupRepository", () => {
         }),
       };
 
-      mockDoc.mockReturnValue({get: jest.fn().mockResolvedValue(mockSnapshot)});
+      mockDoc.mockReturnValue({get: jest.fn().mockResolvedValue(mockSnapshot), collection: mockSubCollection});
 
       const result = await getStartupById("greenpulse");
       expect(result).toBeDefined();
@@ -108,7 +116,7 @@ describe("startupRepository", () => {
 
     it("deve retornar undefined quando startup não existe", async () => {
       const mockSnapshot = {exists: false};
-      mockDoc.mockReturnValue({get: jest.fn().mockResolvedValue(mockSnapshot)});
+      mockDoc.mockReturnValue({get: jest.fn().mockResolvedValue(mockSnapshot), collection: mockSubCollection});
 
       const result = await getStartupById("inexistente");
       expect(result).toBeUndefined();
@@ -117,8 +125,9 @@ describe("startupRepository", () => {
 
   describe("seedDemoStartups", () => {
     it("deve criar 5 startups demo e retornar seus IDs", async () => {
-      mockDoc.mockReturnValue({});
+      mockDoc.mockReturnValue({collection: mockSubCollection, get: mockGet});
       mockCommit.mockResolvedValue(undefined);
+      mockAdd.mockResolvedValue({id: "mock-question-id"});
 
       const ids = await seedDemoStartups();
 
