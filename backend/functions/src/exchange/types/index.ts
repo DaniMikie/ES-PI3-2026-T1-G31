@@ -37,3 +37,26 @@ export type TransactionDocument = {
   totalCents: number;                  // Valor total da operação (quantity × priceCents)
   createdAt?: Timestamp | FieldValue;  // Data/hora da transação
 };
+
+/**
+ * Status de uma oferta no balcao.
+ */
+export type OfferStatus = "active" | "sold" | "cancelled";
+
+/**
+ * Oferta de venda de tokens no balcao.
+ * Documento fica em: offers/{offerId}
+ * Investidor define preco e quantidade. Outro usuario pode aceitar.
+ */
+export type OfferDocument = {
+  sellerUid: string;
+  sellerEmail?: string;
+  startupId: string;
+  startupName: string;
+  quantity: number;
+  priceCents: number;
+  status: OfferStatus;
+  buyerUid?: string;
+  createdAt?: Timestamp | FieldValue;
+  soldAt?: Timestamp | FieldValue;
+};
