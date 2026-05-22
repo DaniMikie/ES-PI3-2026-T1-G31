@@ -687,6 +687,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 final transaction = _transacoes[index];
                 final type = transaction['type']?.toString() ?? '';
                 final isBuy = type == 'buy';
+                final isCredit = type == 'credit';
                 final startupId = transaction['startupId']?.toString() ?? '';
                 final startupName =
                     transaction['startupName']?.toString() ??
@@ -694,6 +695,16 @@ class _WalletScreenState extends State<WalletScreen> {
                 final quantity = _toInt(transaction['quantity']);
                 final totalCents = _toCents(transaction['totalCents']);
                 final date = _transactionDate(transaction);
+                final title = isCredit
+                    ? 'Crédito adicionado'
+                    : isBuy
+                    ? 'Compra de tokens'
+                    : 'Venda de tokens';
+                final subtitle = isCredit
+                    ? (date.isEmpty
+                          ? 'Saldo da carteira'
+                          : 'Saldo da carteira • $date')
+                    : '$startupName • $quantity tokens${date.isEmpty ? '' : ' • $date'}';
 
                 return ListTile(
                   contentPadding: const EdgeInsets.symmetric(
@@ -705,20 +716,24 @@ class _WalletScreenState extends State<WalletScreen> {
                         ? const Color(0xFF2E7D32)
                         : Colors.black,
                     child: Icon(
-                      isBuy ? Icons.arrow_downward : Icons.arrow_upward,
+                      isCredit
+                          ? Icons.add
+                          : isBuy
+                          ? Icons.arrow_downward
+                          : Icons.arrow_upward,
                       color: Colors.white,
                       size: 18,
                     ),
                   ),
                   title: Text(
-                    isBuy ? 'Compra de tokens' : 'Venda de tokens',
+                    title,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
                   subtitle: Text(
-                    '$startupName • $quantity tokens${date.isEmpty ? '' : ' • $date'}',
+                    subtitle,
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                   trailing: Text(

@@ -3,7 +3,6 @@
  * Autor: Rafaela Jacobsen Braga | RA: 25004280
  */
 
-
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
@@ -189,7 +188,7 @@ class _InsufficientBalanceScreenState extends State<InsufficientBalanceScreen> {
                     children: [
                       // Título do modal
                       const Text(
-                        'Você não posssui\nsaldo suficiente',
+                        'Você não possui\nsaldo suficiente',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 20,
