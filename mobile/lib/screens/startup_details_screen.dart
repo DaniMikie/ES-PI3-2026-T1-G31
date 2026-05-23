@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'investment_screen.dart';
 
@@ -72,6 +73,63 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
       default:
         return stage;
     }
+  }
+
+  String get _userDisplayName {
+    final displayName = FirebaseAuth.instance.currentUser?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    return 'Usuário';
+  }
+
+  String get _userInitials {
+    final parts = _userDisplayName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+
+    return '${parts.first.characters.first}${parts.last.characters.first}'
+        .toUpperCase();
+  }
+
+  Widget _buildUserIdentity() {
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 17,
+          backgroundColor: const Color(0xFF2E7D32),
+          backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+          child: hasPhoto
+              ? null
+              : Text(
+                  _userInitials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            _userDisplayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
   }
 
   void _sellTokens() {
@@ -305,6 +363,8 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                   ),
                   const SizedBox(width: 12),
                   Image.asset('assets/images/logo.png', width: 160),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildUserIdentity()),
                 ],
               ),
               const SizedBox(height: 20),
