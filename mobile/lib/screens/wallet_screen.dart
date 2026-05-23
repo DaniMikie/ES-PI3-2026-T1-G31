@@ -34,10 +34,60 @@ class _WalletScreenState extends State<WalletScreen> {
   bool _loading = true;
   String? _errorMessage;
 
+  // Estado do gráfico dinâmico
+  List<Map<String, dynamic>> _chartPoints = [];
+  double _chartVariation = 0;
+  bool _chartLoading = false;
+
   @override
   void initState() {
     super.initState();
     _loadWallet();
+    _loadTokenHistory();
+  }
+
+  String _periodToBackend(String period) {
+    switch (period) {
+      case 'Dia': return 'dia';
+      case 'Semana': return 'semana';
+      case 'Mês': return 'mes';
+      case '6 meses': return '6meses';
+      case 'YTD': return 'ytd';
+      default: return 'mes';
+    }
+  }
+
+  Future<void> _loadTokenHistory() async {
+    setState(() => _chartLoading = true);
+    try {
+      final callable = _functions.httpsCallable('getTokenHistory');
+      final result = await callable.call({
+        'period': _periodToBackend(_periodoSelecionado),
+      });
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final innerData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final points = List<Map<String, dynamic>>.from(
+        (innerData['points'] as List?)?.map(
+              (p) => Map<String, dynamic>.from(p as Map),
+            ) ?? [],
+      );
+      final variation = (innerData['variation'] as num?)?.toDouble() ?? 0;
+
+      if (!mounted) return;
+      setState(() {
+        _chartPoints = points;
+        _chartVariation = variation;
+        _chartLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Erro getTokenHistory: $e');
+      if (!mounted) return;
+      setState(() {
+        _chartPoints = [];
+        _chartVariation = 0;
+        _chartLoading = false;
+      });
+    }
   }
 
   Future<void> _loadWallet() async {
@@ -478,13 +528,38 @@ class _WalletScreenState extends State<WalletScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Análise',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2E7D32),
-          ),
+        Row(
+          children: [
+            const Text(
+              'Análise',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (!_chartLoading && _chartPoints.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _chartVariation >= 0
+                      ? const Color(0xFF2E7D32).withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${_chartVariation >= 0 ? '+' : ''}${_chartVariation.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: _chartVariation >= 0
+                        ? const Color(0xFF2E7D32)
+                        : Colors.red,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         Container(
@@ -500,7 +575,10 @@ class _WalletScreenState extends State<WalletScreen> {
                 children: _periodos.map((p) {
                   final sel = _periodoSelecionado == p;
                   return GestureDetector(
-                    onTap: () => setState(() => _periodoSelecionado = p),
+                    onTap: () {
+                      setState(() => _periodoSelecionado = p);
+                      _loadTokenHistory();
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -524,33 +602,94 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(height: 16),
               SizedBox(
-                height: 100,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(7, (i) {
-                    final h = [40.0, 50.0, 45.0, 55.0, 48.0, 52.0, 80.0][i];
-                    final isLast = i == 6;
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
+                height: 120,
+                child: _chartLoading
+                    ? const Center(
+                        child: SizedBox(
                           width: 20,
-                          height: h,
-                          decoration: BoxDecoration(
-                            color: isLast
-                                ? const Color(0xFF2E7D32)
-                                : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(4),
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF2E7D32),
                           ),
                         ),
-                      ],
-                    );
-                  }),
-                ),
+                      )
+                    : _chartPoints.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Sem dados para este período',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          )
+                        : _buildDynamicChart(),
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDynamicChart() {
+    final values = _chartPoints
+        .map((p) => (p['value'] as num?)?.toDouble() ?? 0)
+        .toList();
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final range = maxValue - minValue;
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(_chartPoints.length, (i) {
+              final value = values[i];
+              // Altura proporcional: mínimo 10px, máximo 90px
+              final proportion = range > 0
+                  ? (value - minValue) / range
+                  : 1.0;
+              final barHeight = 10.0 + (proportion * 80.0);
+              final isLast = i == _chartPoints.length - 1;
+
+              return Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          color: isLast
+                              ? const Color(0xFF2E7D32)
+                              : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: _chartPoints.map((p) {
+            final label = p['label'] as String? ?? '';
+            return Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 9, color: Colors.grey),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
