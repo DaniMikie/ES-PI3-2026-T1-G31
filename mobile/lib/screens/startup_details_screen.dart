@@ -1,11 +1,13 @@
-/**
+/*
  * Tela de Detalhes da Startup — MesclaInvest
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ * Alterações: Rafaela Jacobsen | RA: 25004280
  */
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'investment_screen.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
@@ -36,7 +38,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   }
 
   Future<void> _loadDetails() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final callable = _functions.httpsCallable('getStartupDetails');
       final result = await callable.call({'id': widget.startupId});
@@ -48,17 +53,83 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = 'Erro ao carregar detalhes'; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = 'Erro ao carregar detalhes';
+          _loading = false;
+        });
+      }
     }
   }
 
   String _stageLabel(String stage) {
     switch (stage) {
-      case 'nova': return 'Nova';
-      case 'em_operacao': return 'Em operação';
-      case 'em_expansao': return 'Em expansão';
-      default: return stage;
+      case 'nova':
+        return 'Nova';
+      case 'em_operacao':
+        return 'Em operação';
+      case 'em_expansao':
+        return 'Em expansão';
+      default:
+        return stage;
     }
+  }
+
+  String get _userDisplayName {
+    final displayName = FirebaseAuth.instance.currentUser?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    return 'Usuário';
+  }
+
+  String get _userInitials {
+    final parts = _userDisplayName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+
+    return '${parts.first.characters.first}${parts.last.characters.first}'
+        .toUpperCase();
+  }
+
+  Widget _buildUserIdentity() {
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 17,
+          backgroundColor: const Color(0xFF2E7D32),
+          backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+          child: hasPhoto
+              ? null
+              : Text(
+                  _userInitials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            _userDisplayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
   }
 
   void _sellTokens() {
@@ -79,46 +150,69 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        erro!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
                     ),
                   TextField(
                     controller: controller,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Quantidade de tokens'),
+                    decoration: const InputDecoration(
+                      hintText: 'Quantidade de tokens',
+                    ),
                   ),
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   final qty = int.tryParse(controller.text);
                   if (qty == null || qty <= 0) {
-                    setDialogState(() => erro = 'Informe uma quantidade válida');
+                    setDialogState(
+                      () => erro = 'Informe uma quantidade válida',
+                    );
                     return;
                   }
                   Navigator.pop(dialogContext);
                   try {
                     final callable = _functions.httpsCallable('sellTokens');
-                    await callable.call({'startupId': widget.startupId, 'quantity': qty});
+                    await callable.call({
+                      'startupId': widget.startupId,
+                      'quantity': qty,
+                    });
                     _loadDetails();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$qty tokens vendidos!'), backgroundColor: const Color(0xFF2E7D32)),
-                      );
-                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$qty tokens vendidos!'),
+                        backgroundColor: const Color(0xFF2E7D32),
+                      ),
+                    );
                   } on FirebaseFunctionsException catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.message ?? 'Erro ao vender'), backgroundColor: Colors.red),
-                      );
-                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.message ?? 'Erro ao vender'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Vender', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Vender',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -132,36 +226,55 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(visibility == 'privada' ? 'Pergunta privada' : 'Fazer uma pergunta'),
+        title: Text(
+          visibility == 'privada' ? 'Pergunta privada' : 'Fazer uma pergunta',
+        ),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(hintText: 'Digite aqui sua pergunta'),
+          decoration: const InputDecoration(
+            hintText: 'Digite aqui sua pergunta',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (controller.text.trim().isEmpty) return;
               Navigator.pop(context);
               try {
-                final callable = _functions.httpsCallable('createStartupQuestion');
-                await callable.call({'startupId': widget.startupId, 'text': controller.text.trim(), 'visibility': visibility});
+                final callable = _functions.httpsCallable(
+                  'createStartupQuestion',
+                );
+                await callable.call({
+                  'startupId': widget.startupId,
+                  'text': controller.text.trim(),
+                  'visibility': visibility,
+                });
                 _loadDetails();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pergunta enviada!'), backgroundColor: Color(0xFF2E7D32)),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Pergunta enviada!'),
+                    backgroundColor: Color(0xFF2E7D32),
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Erro ao enviar pergunta'), backgroundColor: Colors.red),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Erro ao enviar pergunta'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+            ),
             child: const Text('Enviar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -169,17 +282,68 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     );
   }
 
+  List<String> _videoLinks() {
+    final rawLinks =
+        _startup?['demoVideos'] ??
+        _startup?['videos'] ??
+        _startup?['videoUrls'] ??
+        _startup?['links'];
+
+    if (rawLinks is! List) return [];
+
+    return rawLinks
+        .whereType<String>()
+        .map((link) => link.trim())
+        .where((link) => link.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _openVideo(String link) async {
+    final uri = Uri.tryParse(link);
+
+    if (uri == null || !uri.hasScheme) {
+      _showVideoError();
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    if (!opened) {
+      _showVideoError();
+    }
+  }
+
+  void _showVideoError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Não foi possível abrir o vídeo'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(backgroundColor: Colors.white, body: Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32))));
-    if (_error != null) return Scaffold(backgroundColor: Colors.white, body: Center(child: Text(_error!)));
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+        ),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: Text(_error!)),
+      );
+    }
 
     final name = _startup!['name'] as String? ?? '';
     final stage = _startup!['stage'] as String? ?? '';
     final tags = List<String>.from(_startup!['tags'] ?? []);
     final logo = name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'S';
     final categoria = tags.isNotEmpty ? tags.first : '';
-    final isInvestor = _startup!['access']?['isInvestor'] == true;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -193,9 +357,14 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               // Header
               Row(
                 children: [
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, size: 22)),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back, size: 22),
+                  ),
                   const SizedBox(width: 12),
                   Image.asset('assets/images/logo.png', width: 160),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildUserIdentity()),
                 ],
               ),
               const SizedBox(height: 20),
@@ -203,25 +372,61 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               Row(
                 children: [
                   Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(10)),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     alignment: Alignment.center,
-                    child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      logo,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        if (categoria.isNotEmpty) Text(categoria, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (categoria.isNotEmpty)
+                          Text(
+                            categoria,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(20)),
-                    child: Text(_stageLabel(stage), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _stageLabel(stage),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -254,9 +459,18 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         decoration: BoxDecoration(
           color: selected ? Colors.black : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: selected ? Colors.black : Colors.grey.shade400),
+          border: Border.all(
+            color: selected ? Colors.black : Colors.grey.shade400,
+          ),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.black, fontSize: 13, fontWeight: FontWeight.w600)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -264,56 +478,160 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   Widget _buildStartupTab() {
     final description = _startup!['description'] as String? ?? '';
     final executiveSummary = _startup!['executiveSummary'] as String? ?? '';
-    final founders = List<Map<String, dynamic>>.from((_startup!['founders'] as List?)?.map((f) => Map<String, dynamic>.from(f as Map)) ?? []);
-    final questions = List<Map<String, dynamic>>.from((_startup!['publicQuestions'] as List?)?.map((q) => Map<String, dynamic>.from(q as Map)) ?? []);
-    final privateQuestions = List<Map<String, dynamic>>.from((_startup!['privateQuestions'] as List?)?.map((q) => Map<String, dynamic>.from(q as Map)) ?? []);
+    final founders = List<Map<String, dynamic>>.from(
+      (_startup!['founders'] as List?)?.map(
+            (f) => Map<String, dynamic>.from(f as Map),
+          ) ??
+          [],
+    );
+    final questions = List<Map<String, dynamic>>.from(
+      (_startup!['publicQuestions'] as List?)?.map(
+            (q) => Map<String, dynamic>.from(q as Map),
+          ) ??
+          [],
+    );
+    final privateQuestions = List<Map<String, dynamic>>.from(
+      (_startup!['privateQuestions'] as List?)?.map(
+            (q) => Map<String, dynamic>.from(q as Map),
+          ) ??
+          [],
+    );
     final isInvestor = _startup!['access']?['isInvestor'] == true;
+    final videoLinks = _videoLinks();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Sobre
-        const Text('Sobre', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Sobre',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(description, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+        Text(
+          description,
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
         const SizedBox(height: 24),
 
-        // Estrutura societária
-        const Text('Estrutura societária', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-        const SizedBox(height: 12),
-        ...founders.map((f) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: [
-              Text('${f['equityPercent'] ?? 0}%', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 12),
-              Text('${f['name']} - ${f['role']}', style: const TextStyle(fontSize: 14)),
-            ],
+        if (videoLinks.isNotEmpty) ...[
+          const Text(
+            'Vídeos',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
           ),
-        )),
+          const SizedBox(height: 12),
+          ...videoLinks.asMap().entries.map(
+            (entry) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openVideo(entry.value),
+                icon: const Icon(Icons.play_circle_outline, size: 20),
+                label: Text('Abrir vídeo ${entry.key + 1}'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF2E7D32),
+                  side: const BorderSide(color: Color(0xFF2E7D32)),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.centerLeft,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
+        // Estrutura societária
+        const Text(
+          'Estrutura societária',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...founders.map(
+          (f) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Text(
+                  '${f['equityPercent'] ?? 0}%',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${f['name']} - ${f['role']}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
 
         // Perguntas e respostas
-        const Text('Perguntas e respostas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Perguntas e respostas',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 12),
         if (questions.isEmpty)
-          const Text('Nenhuma pergunta ainda', style: TextStyle(color: Colors.grey))
+          const Text(
+            'Nenhuma pergunta ainda',
+            style: TextStyle(color: Colors.grey),
+          )
         else
-          ...questions.map((q) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(q['text'] as String? ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                if (q['answer'] != null) ...[
-                  const SizedBox(height: 8),
-                  Text(q['answer'] as String, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          ...questions.map(
+            (q) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    q['text'] as String? ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (q['answer'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      q['answer'] as String,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          )),
+          ),
         const SizedBox(height: 12),
         // Botao de pergunta publica (qualquer usuario)
         GestureDetector(
@@ -321,34 +639,78 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(border: Border.all(color: const Color(0xFF2E7D32)), borderRadius: BorderRadius.circular(12)),
-            child: const Text('Fazer uma pergunta publica', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF2E7D32)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Fazer uma pergunta publica',
+              style: TextStyle(
+                color: Color(0xFF2E7D32),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 24),
 
         // Sócios ativos
-        const Text('Sócios ativos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Sócios ativos',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 12),
         Container(
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Column(
-            children: founders.map((f) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(8)),
-                    alignment: Alignment.center,
-                    child: const Text('I', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            children: founders
+                .map(
+                  (f) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'I',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            f['name'] as String? ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Text(
+                          '${f['equityPercent']}%',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(f['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
-                  Text('${f['equityPercent']}%', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )).toList(),
+                )
+                .toList(),
           ),
         ),
         const SizedBox(height: 24),
@@ -358,16 +720,35 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               children: [
-                const Text('Área do já investidor', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Área do já investidor',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                const Text('Quer comprar ou vender seus tokens?', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const Text(
+                  'Quer comprar ou vender seus tokens?',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () => setState(() => _tabIndex = 1),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
                   child: const Text('Ir para os tokens'),
                 ),
               ],
@@ -375,47 +756,101 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
           const SizedBox(height: 24),
           // Perguntas privadas
-          const Text('Perguntas e respostas privadas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+          const Text(
+            'Perguntas e respostas privadas',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
           const SizedBox(height: 12),
           if (privateQuestions.isEmpty)
-            const Text('Nenhuma pergunta privada ainda', style: TextStyle(color: Colors.grey))
+            const Text(
+              'Nenhuma pergunta privada ainda',
+              style: TextStyle(color: Colors.grey),
+            )
           else
-            ...privateQuestions.map((q) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(q['text'] as String? ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  if (q['answer'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text(q['answer'] as String, style: const TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontStyle: FontStyle.italic)),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    const Text('Aguardando resposta...', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+            ...privateQuestions.map(
+              (q) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      q['text'] as String? ?? '',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (q['answer'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        q['answer'] as String,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF2E7D32),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Aguardando resposta...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            )),
+            ),
           const SizedBox(height: 12),
           // Campo de pergunta privada
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Fazer uma pergunta privada', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Fazer uma pergunta privada',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () => _sendQuestion(visibility: 'privada'),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                    child: const Text('Digite aqui sua pergunta', style: TextStyle(color: Colors.white70)),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Digite aqui sua pergunta',
+                      style: TextStyle(color: Colors.white70),
+                    ),
                   ),
                 ),
               ],
@@ -425,9 +860,19 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
 
         // Sumário executivo
         const SizedBox(height: 24),
-        const Text('Sumário executivo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Sumário executivo',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(_startup!['executiveSummary'] as String? ?? '', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+        Text(
+          executiveSummary,
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
         const SizedBox(height: 32),
       ],
     );
@@ -444,11 +889,21 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Valorização (placeholder gráfico)
-        const Text('Valorização dos tokens', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Valorização dos tokens',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: SizedBox(
             height: 80,
             child: Row(
@@ -456,7 +911,16 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(6, (i) {
                 final h = [35.0, 45.0, 40.0, 50.0, 42.0, 70.0][i];
-                return Container(width: 20, height: h, decoration: BoxDecoration(color: i == 5 ? const Color(0xFF2E7D32) : Colors.grey.shade300, borderRadius: BorderRadius.circular(4)));
+                return Container(
+                  width: 20,
+                  height: h,
+                  decoration: BoxDecoration(
+                    color: i == 5
+                        ? const Color(0xFF2E7D32)
+                        : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
               }),
             ),
           ),
@@ -464,14 +928,27 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         const SizedBox(height: 24),
 
         // Os tokens
-        const Text('Os tokens', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const Text(
+          'Os tokens',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _tokenInfo('R\$ ${(capitalCents / 100).toStringAsFixed(0)}', 'Captados'),
+            _tokenInfo(
+              'R\$ ${(capitalCents / 100).toStringAsFixed(0)}',
+              'Captados',
+            ),
             _tokenInfo('$totalTokens', 'Total emitidos'),
-            _tokenInfo('R\$ ${(priceCents / 100).toStringAsFixed(2)}', 'Por token'),
+            _tokenInfo(
+              'R\$ ${(priceCents / 100).toStringAsFixed(2)}',
+              'Por token',
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -481,17 +958,43 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               children: [
-                const Text('Área do já investidor', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Área do já investidor',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
-                const Text('Você possui', style: TextStyle(color: Colors.white70)),
-                Text('$userTokens tokens', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Você possui',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                Text(
+                  '$userTokens tokens',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _sellTokens,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
                   child: const Text('Vender tokens'),
                 ),
                 const SizedBox(height: 8),
@@ -500,7 +1003,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                     // Volta pra MainScreen e vai pra aba Carteira (index 2)
                     Navigator.pop(context);
                   },
-                  child: const Text('Consulte seu saldo aqui', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  child: const Text(
+                    'Consulte seu saldo aqui',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -513,21 +1019,29 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (context) => InvestmentScreen(
-                  startupId: widget.startupId,
-                  startupNome: _startup!['name'] as String? ?? '',
-                  valorPorToken: priceCents / 100,
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvestmentScreen(
+                    startupId: widget.startupId,
+                    startupNome: _startup!['name'] as String? ?? '',
+                    valorPorToken: priceCents / 100,
+                  ),
                 ),
-              )).then((_) => _loadDetails());
+              ).then((_) => _loadDetails());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
-            child: const Text('Comprar tokens', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Comprar tokens',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(height: 32),
@@ -538,7 +1052,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   Widget _tokenInfo(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
