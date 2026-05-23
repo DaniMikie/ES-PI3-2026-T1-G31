@@ -8,7 +8,7 @@
 
 import {onCall, HttpsError} from "firebase-functions/https";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
-import {updateBalance, getBalance} from "../repositories/exchangeRepository";
+import {updateBalance, getBalance, saveTransaction} from "../repositories/exchangeRepository";
 
 export const addCredits = onCall(async (request) => {
   // 1. Verifica se o usuário está logado
@@ -25,10 +25,20 @@ export const addCredits = onCall(async (request) => {
   // 4. Soma o valor no saldo do usuário
   await updateBalance(user.uid, amount);
 
-  // 5. Busca o saldo atualizado pra retornar pro Flutter
+  // 5. Registra a transação de crédito no histórico
+  await saveTransaction(user.uid, {
+    type: "credit",
+    startupId: "",
+    startupName: "",
+    quantity: 0,
+    priceCents: 0,
+    totalCents: amount,
+  });
+
+  // 6. Busca o saldo atualizado pra retornar pro Flutter
   const newBalance = await getBalance(user.uid);
 
-  // 6. Retorna o novo saldo
+  // 7. Retorna o novo saldo
   return {
     data: {
       balanceCents: newBalance,

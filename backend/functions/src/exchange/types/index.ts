@@ -19,9 +19,9 @@ export type TokenPosition = {
 };
 
 /**
- * Tipo de transação: compra ou venda.
+ * Tipo de transação: compra, venda ou crédito adicionado.
  */
-export type TransactionType = "buy" | "sell";
+export type TransactionType = "buy" | "sell" | "credit";
 
 /**
  * Registro de uma transação (compra ou venda).

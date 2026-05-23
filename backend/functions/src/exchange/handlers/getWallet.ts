@@ -27,6 +27,8 @@ export const getWallet = onCall(async (request) => {
       positions,
       totalStartups: positions.length,
       totalTokens: positions.reduce((sum, p) => sum + p.quantity, 0),
+      totalInvestedCents: positions.reduce((sum, p) => sum + p.totalInvestedCents, 0),
+      totalCurrentValueCents: positions.reduce((sum, p) => sum + (p.quantity * p.currentTokenPriceCents), 0),
     },
   };
 });

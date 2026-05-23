@@ -137,13 +137,13 @@ export async function removeTokens(
 /**
  * Busca todas as posições de tokens do usuário em todas as startups.
  * Percorre cada startup e verifica se o usuário é investidor.
- * Retorna array com startupId, quantidade e valor investido.
+ * Retorna array com startupId, quantidade, valor investido e preço atual do token.
  */
 export async function getUserTokenPositions(
   uid: string
-): Promise<Array<{startupId: string; quantity: number; totalInvestedCents: number}>> {
+): Promise<Array<{startupId: string; quantity: number; totalInvestedCents: number; currentTokenPriceCents: number}>> {
   const startupsSnapshot = await db.collection("startups").get();
-  const positions: Array<{startupId: string; quantity: number; totalInvestedCents: number}> = [];
+  const positions: Array<{startupId: string; quantity: number; totalInvestedCents: number; currentTokenPriceCents: number}> = [];
 
   for (const startupDoc of startupsSnapshot.docs) {
     const investorSnapshot = await startupDoc.ref
@@ -153,10 +153,12 @@ export async function getUserTokenPositions(
 
     if (investorSnapshot.exists) {
       const data = investorSnapshot.data();
+      const startupData = startupDoc.data();
       positions.push({
         startupId: startupDoc.id,
         quantity: data?.quantity ?? 0,
         totalInvestedCents: data?.totalInvestedCents ?? 0,
+        currentTokenPriceCents: startupData?.currentTokenPriceCents ?? 0,
       });
     }
   }

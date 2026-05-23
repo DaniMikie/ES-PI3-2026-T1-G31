@@ -24,6 +24,7 @@ export const getUserProfile = onCall(async (request) => {
       email: profile?.email ?? user.email ?? "",
       cpf: profile?.cpf ?? "",
       telefone: profile?.phone ?? "",
+      mfaAtivo: profile?.mfaAtivo ?? false,
     },
   };
 });
