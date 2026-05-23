@@ -5,6 +5,8 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,6 +23,7 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   final _functions = FirebaseFunctions.instance;
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
   List<Map<String, dynamic>> _startups = [];
   bool _loading = true;
   String? _selectedStage;
@@ -41,8 +44,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), _loadStartups);
   }
 
   Future<void> _loadStartups() async {
@@ -59,7 +68,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
       });
       final data = Map<String, dynamic>.from(result.data as Map);
       final startups = List<Map<String, dynamic>>.from(
-        (data['data'] as List).map((item) => Map<String, dynamic>.from(item as Map)),
+        (data['data'] as List).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
       );
       if (mounted) {
         setState(() {
@@ -126,10 +137,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: Column(
@@ -156,10 +164,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
+                      borderSide: BorderSide(
+                        color: Color(0xFF2E7D32),
+                        width: 2,
+                      ),
                     ),
                   ),
-                  onFieldSubmitted: (_) => _loadStartups(),
+                  onChanged: _onSearchChanged,
+                  onFieldSubmitted: (_) {
+                    _searchDebounce?.cancel();
+                    _loadStartups();
+                  },
                 ),
 
                 const SizedBox(height: 12),
@@ -173,7 +188,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final stage = _stages[index];
-                      final isSelected = (_selectedStage ?? '') == stage['value'];
+                      final isSelected =
+                          (_selectedStage ?? '') == stage['value'];
                       return FilterChip(
                         label: Text(stage['label']!),
                         selected: isSelected,
@@ -181,7 +197,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         checkmarkColor: const Color(0xFF2E7D32),
                         onSelected: (_) {
                           setState(() {
-                            _selectedStage = stage['value']!.isEmpty ? null : stage['value'];
+                            _selectedStage = stage['value']!.isEmpty
+                                ? null
+                                : stage['value'];
                           });
                           _loadStartups();
                         },
@@ -196,136 +214,159 @@ class _CatalogScreenState extends State<CatalogScreen> {
           // Lista de startups
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                  )
                 : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_error!, style: const TextStyle(color: Colors.red)),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadStartups,
-                              child: const Text('Tentar novamente'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
                         ),
-                      )
-                    : _startups.isEmpty
-                        ? const Center(child: Text('Nenhuma startup encontrada'))
-                        : RefreshIndicator(
-                            onRefresh: _loadStartups,
-                            color: const Color(0xFF2E7D32),
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _startups.length,
-                              itemBuilder: (context, index) {
-                                final startup = _startups[index];
-                                final stage = startup['stage'] as String? ?? '';
-                                final tags = List<String>.from(startup['tags'] ?? []);
-                                final priceCents = startup['currentTokenPriceCents'] as int? ?? 0;
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadStartups,
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _startups.isEmpty
+                ? const Center(child: Text('Nenhuma startup encontrada'))
+                : RefreshIndicator(
+                    onRefresh: _loadStartups,
+                    color: const Color(0xFF2E7D32),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _startups.length,
+                      itemBuilder: (context, index) {
+                        final startup = _startups[index];
+                        final stage = startup['stage'] as String? ?? '';
+                        final tags = List<String>.from(startup['tags'] ?? []);
+                        final priceCents =
+                            startup['currentTokenPriceCents'] as int? ?? 0;
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  elevation: 1,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => StartupDetailsScreen(
+                                    startupId: startup['id'] as String,
+                                    startupName: startup['name'] as String,
                                   ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => StartupDetailsScreen(
-                                            startupId: startup['id'] as String,
-                                            startupName: startup['name'] as String,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Nome e estágio
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          startup['name'] as String? ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Nome e estágio
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  startup['name'] as String? ?? '',
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: _stageColor(stage).withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  _stageLabel(stage),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: _stageColor(stage),
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-
-                                          const SizedBox(height: 8),
-
-                                          // Descrição curta
-                                          Text(
-                                            startup['shortDescription'] as String? ?? '',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-
-                                          const SizedBox(height: 12),
-
-                                          // Preço do token
-                                          Text(
-                                            'Token: R\$ ${(priceCents / 100).toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF2E7D32),
-                                            ),
-                                          ),
-
-                                          const SizedBox(height: 8),
-
-                                          // Tags
-                                          Wrap(
-                                            spacing: 6,
-                                            children: tags.map((tag) => Chip(
-                                              label: Text(tag, style: const TextStyle(fontSize: 11)),
-                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                              visualDensity: VisualDensity.compact,
-                                            )).toList(),
-                                          ),
-                                        ],
                                       ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _stageColor(
+                                            stage,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _stageLabel(stage),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: _stageColor(stage),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 8),
+
+                                  // Descrição curta
+                                  Text(
+                                    startup['shortDescription'] as String? ??
+                                        '',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // Preço do token
+                                  Text(
+                                    'Token: R\$ ${(priceCents / 100).toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2E7D32),
                                     ),
                                   ),
-                                );
-                              },
+
+                                  const SizedBox(height: 8),
+
+                                  // Tags
+                                  Wrap(
+                                    spacing: 6,
+                                    children: tags
+                                        .map(
+                                          (tag) => Chip(
+                                            label: Text(
+                                              tag,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            materialTapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
