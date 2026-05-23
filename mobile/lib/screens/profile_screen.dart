@@ -176,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sair da conta'),
-        content: const Text('Tem certeza que deseja sair?'),
+        content: const Text('Deseja realmente sair da sua conta?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
