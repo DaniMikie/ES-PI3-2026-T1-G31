@@ -30,16 +30,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
-    if(_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate()) {
       try {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (mounted) {
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen()),
+            (route) => false,
           );
         }
       } on FirebaseAuthException catch (e) {
@@ -54,9 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
           message = 'E-mail ou senha incorretos';
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
         }
       }
     }
@@ -91,7 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 20),
-                  Center(child: Image.asset('assets/images/logo.png', width: 200)),
+                  Center(
+                    child: Image.asset('assets/images/logo.png', width: 200),
+                  ),
                   const SizedBox(height: 24),
                   const Text(
                     'Login',
@@ -114,11 +117,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Email*',
                       hintText: 'seuemail@exemplo.com',
                       prefixIcon: Icon(Icons.email_outlined),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Color(0xFF2E7D32),
+                          width: 2,
+                        ),
+                      ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe seu e-mail';
+                      if (value == null || value.isEmpty)
+                        return 'Informe seu e-mail';
                       if (!value.contains('@')) return 'E-mail inválido';
                       return null;
                     },
@@ -131,14 +142,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Senha*',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_viewPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                        onPressed: () => setState(() => _viewPassword = !_viewPassword),
+                        icon: Icon(
+                          _viewPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _viewPassword = !_viewPassword),
                       ),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Color(0xFF2E7D32),
+                          width: 2,
+                        ),
+                      ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe sua senha';
+                      if (value == null || value.isEmpty)
+                        return 'Informe sua senha';
                       return null;
                     },
                   ),
@@ -146,7 +170,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: TextButton(
                       onPressed: _forgotPassword,
-                      child: const Text('Esqueci minha senha', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                      child: const Text(
+                        'Esqueci minha senha',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -156,7 +183,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32),
+                      ),
                     ),
                     child: const Text('Entrar', style: TextStyle(fontSize: 16)),
                   ),
@@ -165,10 +194,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Não tem cadastro? ', style: TextStyle(color: Colors.grey)),
+                        const Text(
+                          'Não tem cadastro? ',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                         GestureDetector(
                           onTap: _createAccount,
-                          child: const Text('Criar nova conta', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Criar nova conta',
+                            style: TextStyle(
+                              color: Color(0xFF2E7D32),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
