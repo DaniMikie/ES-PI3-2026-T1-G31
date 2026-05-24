@@ -6,10 +6,11 @@
  */
 
 import {onCall, HttpsError} from "firebase-functions/https";
+import * as logger from "firebase-functions/logger";
 import {FieldValue} from "firebase-admin/firestore";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
-import {getBalance, updateBalance, addTokens, saveTransaction} from "../repositories/exchangeRepository";
+import {getBalance, updateBalance, addTokens, saveTransaction, recalculateTokenPrice} from "../repositories/exchangeRepository";
 import {db} from "../../startups/shared/firebase";
 
 export const acceptOffer = onCall(async (request) => {
@@ -33,7 +34,12 @@ export const acceptOffer = onCall(async (request) => {
 
   // Verifica saldo do comprador
   const balance = await getBalance(user.uid);
-  if (balance < totalCents) throw new HttpsError("failed-precondition", "Saldo insuficiente.");
+  if (balance < totalCents) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Saldo insuficiente. Necessario: R$${(totalCents / 100).toFixed(2)}, disponivel: R$${(balance / 100).toFixed(2)}.`
+    );
+  }
 
   // Debita comprador
   await updateBalance(user.uid, -totalCents);
@@ -70,6 +76,13 @@ export const acceptOffer = onCall(async (request) => {
     priceCents: offer.priceCents,
     totalCents,
   });
+
+  // Recalcula o preco do token (não bloqueia a resposta se falhar)
+  try {
+    await recalculateTokenPrice(offer.startupId);
+  } catch (e) {
+    logger.error("Erro ao recalcular preco:", e);
+  }
 
   return {
     data: {

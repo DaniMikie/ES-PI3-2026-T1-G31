@@ -127,7 +127,16 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                     setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                   } on FirebaseFunctionsException catch (e) {
                     Navigator.pop(dialogContext);
-                    if (mounted) _showSaldoInsuficiente(e.message ?? 'Erro na compra');
+                    if (mounted) {
+                      if (e.code == 'failed-precondition' || (e.message ?? '').toLowerCase().contains('saldo')) {
+                        _showSaldoInsuficiente(e.message ?? 'Saldo insuficiente');
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Colors.red),
+                        );
+                        Navigator.pop(context);
+                      }
+                    }
                   } catch (e) {
                     setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                   }
@@ -230,7 +239,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(_quantidadeTokens.toString().padLeft(3, '0'), style: const TextStyle(fontSize: 15)),
+                            Text(_quantidadeTokens.toString(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                             const Text('Tokens', style: TextStyle(fontSize: 15, color: Colors.grey)),
                           ],
                         ),

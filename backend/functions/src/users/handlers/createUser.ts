@@ -12,6 +12,7 @@ import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
 import {createUserProfile, getUserProfile} from "../repositories/userRepository";
 import {UserDocument} from "../types";
+import {db} from "../../startups/shared/firebase";
 
 export const createUser = onCall(async (request) => {
   // 1. Verifica login (o usuário acabou de criar conta no Auth)
@@ -36,6 +37,18 @@ export const createUser = onCall(async (request) => {
     throw new HttpsError(
       "already-exists",
       "Perfil de usuario ja existe."
+    );
+  }
+
+  // 4.1 Verifica se CPF já está cadastrado por outro usuário
+  const cpfCheck = await db.collection("users")
+    .where("cpf", "==", cpf)
+    .limit(1)
+    .get();
+  if (!cpfCheck.empty) {
+    throw new HttpsError(
+      "already-exists",
+      "Este CPF ja esta cadastrado."
     );
   }
 

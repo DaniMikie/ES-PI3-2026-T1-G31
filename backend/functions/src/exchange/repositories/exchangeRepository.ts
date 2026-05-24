@@ -103,6 +103,34 @@ export async function getTokenPosition(
 }
 
 /**
+ * Calcula o total de tokens já vendidos (em posse de investidores) de uma startup.
+ * Soma o campo quantity de todos os documentos em startups/{startupId}/investors.
+ */
+export async function getTotalTokensSold(startupId: string): Promise<number> {
+  const snapshot = await db
+    .collection("startups")
+    .doc(startupId)
+    .collection("investors")
+    .get();
+
+  let total = 0;
+  for (const doc of snapshot.docs) {
+    total += (doc.data().quantity as number) ?? 0;
+  }
+  return total;
+}
+
+/**
+ * Incrementa o capital captado da startup.
+ * Chamado após cada compra direta (buyTokens).
+ */
+export async function updateStartupCapital(startupId: string, amountCents: number): Promise<void> {
+  await db.collection("startups").doc(startupId).update({
+    capitalRaisedCents: FieldValue.increment(amountCents),
+  });
+}
+
+/**
  * Remove tokens vendidos pelo usuário.
  * Se a quantidade restante for 0 ou menos, deleta o documento
  * (o usuário deixa de ser investidor daquela startup).
@@ -132,6 +160,61 @@ export async function removeTokens(
       updatedAt: FieldValue.serverTimestamp(),
     });
   }
+}
+
+/**
+ * Recalcula o preço do token de uma startup com base nas últimas transações.
+ *
+ * Lógica: média ponderada por quantidade das últimas 10 transações
+ * (compra, venda e balcão) registradas por QUALQUER usuário naquela startup.
+ *
+ * Se não houver transações suficientes, mantém o preço atual.
+ * Chamada após cada buyTokens, sellTokens e acceptOffer.
+ */
+export async function recalculateTokenPrice(startupId: string): Promise<number> {
+  // Busca todos os usuários que têm transações dessa startup (via collectionGroup)
+  const transactionsSnapshot = await db
+    .collectionGroup("transactions")
+    .where("startupId", "==", startupId)
+    .orderBy("createdAt", "desc")
+    .limit(10)
+    .get();
+
+  if (transactionsSnapshot.empty) {
+    // Sem transações — mantém preço atual
+    const startupDoc = await db.collection("startups").doc(startupId).get();
+    return startupDoc.data()?.currentTokenPriceCents ?? 0;
+  }
+
+  // Calcula média ponderada: soma(preco * quantidade) / soma(quantidade)
+  let totalWeightedPrice = 0;
+  let totalQuantity = 0;
+
+  for (const doc of transactionsSnapshot.docs) {
+    const data = doc.data();
+    const priceCents = data.priceCents as number ?? 0;
+    const quantity = data.quantity as number ?? 0;
+
+    // Ignora transações de crédito (não têm preço de token)
+    if (data.type === "credit" || priceCents <= 0 || quantity <= 0) continue;
+
+    totalWeightedPrice += priceCents * quantity;
+    totalQuantity += quantity;
+  }
+
+  if (totalQuantity === 0) {
+    const startupDoc = await db.collection("startups").doc(startupId).get();
+    return startupDoc.data()?.currentTokenPriceCents ?? 0;
+  }
+
+  const newPrice = Math.round(totalWeightedPrice / totalQuantity);
+
+  // Atualiza o preço na startup
+  await db.collection("startups").doc(startupId).update({
+    currentTokenPriceCents: newPrice,
+  });
+
+  return newPrice;
 }
 
 /**

@@ -728,9 +728,16 @@ class _WalletScreenState extends State<WalletScreen> {
                 final startupName = _startupLabel(startupId);
                 final quantity = _toInt(inv['quantity']);
                 final totalCents = _toCents(inv['totalInvestedCents']);
+                final currentPriceCents = _toInt(inv['currentTokenPriceCents']);
                 final logo = startupName.length >= 2
                     ? startupName.substring(0, 2).toUpperCase()
                     : 'ST';
+
+                // Calcula variação: preço médio de compra vs preço atual
+                final avgBuyCents = quantity > 0 ? totalCents / quantity : 0.0;
+                final variation = avgBuyCents > 0
+                    ? ((currentPriceCents - avgBuyCents) / avgBuyCents) * 100
+                    : 0.0;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(
@@ -778,12 +785,28 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
-                      Text(
-                        _formatMoney(totalCents / 100),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _formatMoney(totalCents / 100),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${variation >= 0 ? '+' : ''}${variation.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: variation >= 0
+                                  ? const Color(0xFF2E7D32)
+                                  : Colors.red,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

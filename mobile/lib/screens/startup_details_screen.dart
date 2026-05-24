@@ -133,14 +133,18 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   }
 
   void _sellTokens() {
-    final controller = TextEditingController();
+    final qtyController = TextEditingController();
+    final senhaController = TextEditingController();
     showDialog(
       context: context,
       builder: (dialogContext) {
         String? erro;
+        bool loading = false;
+        bool pedindoSenha = false;
+        int qty = 0;
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) => AlertDialog(
-            title: const Text('Vender tokens'),
+            title: Text(pedindoSenha ? 'Confirmar venda' : 'Vender tokens'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -159,37 +163,63 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                         style: const TextStyle(color: Colors.red, fontSize: 13),
                       ),
                     ),
-                  TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: 'Quantidade de tokens',
+                  if (!pedindoSenha)
+                    TextField(
+                      controller: qtyController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: 'Quantidade de tokens',
+                      ),
+                    )
+                  else ...[
+                    Text('Vender $qty tokens', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: senhaController,
+                      obscureText: true,
+                      enabled: !loading,
+                      decoration: const InputDecoration(
+                        hintText: 'Sua senha',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
+                onPressed: loading ? null : () => Navigator.pop(dialogContext),
                 child: const Text('Cancelar'),
               ),
               ElevatedButton(
-                onPressed: () async {
-                  final qty = int.tryParse(controller.text);
-                  if (qty == null || qty <= 0) {
-                    setDialogState(
-                      () => erro = 'Informe uma quantidade válida',
-                    );
+                onPressed: loading ? null : () async {
+                  if (!pedindoSenha) {
+                    final parsed = int.tryParse(qtyController.text);
+                    if (parsed == null || parsed <= 0) {
+                      setDialogState(() => erro = 'Informe uma quantidade válida');
+                      return;
+                    }
+                    qty = parsed;
+                    setDialogState(() { pedindoSenha = true; erro = null; });
                     return;
                   }
-                  Navigator.pop(dialogContext);
+                  if (senhaController.text.isEmpty) {
+                    setDialogState(() => erro = 'Informe sua senha');
+                    return;
+                  }
+                  setDialogState(() { loading = true; erro = null; });
                   try {
+                    final user = FirebaseAuth.instance.currentUser!;
+                    await user.reauthenticateWithCredential(
+                      EmailAuthProvider.credential(email: user.email!, password: senhaController.text),
+                    );
                     final callable = _functions.httpsCallable('sellTokens');
                     await callable.call({
                       'startupId': widget.startupId,
                       'quantity': qty,
                     });
+                    Navigator.pop(dialogContext);
                     _loadDetails();
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -198,21 +228,18 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                         backgroundColor: const Color(0xFF2E7D32),
                       ),
                     );
+                  } on FirebaseAuthException catch (_) {
+                    setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                   } on FirebaseFunctionsException catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.message ?? 'Erro ao vender'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    setDialogState(() { erro = e.message ?? 'Erro ao vender'; loading = false; });
+                  } catch (_) {
+                    setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text(
-                  'Vender',
-                  style: TextStyle(color: Colors.white),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                child: loading
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(pedindoSenha ? 'Confirmar' : 'Avançar', style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -879,16 +906,17 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   }
 
   Widget _buildTokensTab() {
-    final capitalCents = _startup!['capitalRaisedCents'] as int? ?? 0;
-    final totalTokens = _startup!['totalTokensIssued'] as int? ?? 0;
-    final priceCents = _startup!['currentTokenPriceCents'] as int? ?? 0;
+    final capitalCents = _startup!['capitalRaisedCents'] is num ? (_startup!['capitalRaisedCents'] as num).toInt() : 0;
+    final totalTokens = _startup!['totalTokensIssued'] is num ? (_startup!['totalTokensIssued'] as num).toInt() : 0;
+    final priceCents = _startup!['currentTokenPriceCents'] is num ? (_startup!['currentTokenPriceCents'] as num).toInt() : 0;
     final isInvestor = _startup!['access']?['isInvestor'] == true;
-    final userTokens = _startup!['access']?['tokenQuantity'] as int? ?? 0;
+    final rawUserTokens = _startup!['access']?['tokenQuantity'];
+    final userTokens = rawUserTokens is int ? rawUserTokens : (rawUserTokens is num ? rawUserTokens.toInt() : 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Valorização (placeholder gráfico)
+        // Valorização dinâmica
         const Text(
           'Valorização dos tokens',
           style: TextStyle(
@@ -898,33 +926,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: SizedBox(
-            height: 80,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(6, (i) {
-                final h = [35.0, 45.0, 40.0, 50.0, 42.0, 70.0][i];
-                return Container(
-                  width: 20,
-                  height: h,
-                  decoration: BoxDecoration(
-                    color: i == 5
-                        ? const Color(0xFF2E7D32)
-                        : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ),
+        _StartupChart(startupId: widget.startupId),
         const SizedBox(height: 24),
 
         // Os tokens
@@ -1059,6 +1061,124 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
+    );
+  }
+}
+
+// Widget de gráfico dinâmico da startup
+class _StartupChart extends StatefulWidget {
+  final String startupId;
+  const _StartupChart({required this.startupId});
+
+  @override
+  State<_StartupChart> createState() => _StartupChartState();
+}
+
+class _StartupChartState extends State<_StartupChart> {
+  final _functions = FirebaseFunctions.instance;
+  List<Map<String, dynamic>> _points = [];
+  double _variation = 0;
+  bool _loading = true;
+  String _period = 'mes';
+
+  final _periods = ['dia', 'semana', 'mes', '6meses', 'ytd'];
+  final _periodLabels = {'dia': 'Dia', 'semana': 'Sem', 'mes': 'Mês', '6meses': '6M', 'ytd': 'YTD'};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final callable = _functions.httpsCallable('getStartupTokenHistory');
+      final result = await callable.call({'startupId': widget.startupId, 'period': _period});
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final points = List<Map<String, dynamic>>.from(
+        (inner['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+      );
+      final variation = (inner['variation'] as num?)?.toDouble() ?? 0;
+      if (mounted) setState(() { _points = points; _variation = variation; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _points = []; _variation = 0; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        children: [
+          // Seletor de período + variação
+          Row(
+            children: [
+              ..._periods.map((p) {
+                final sel = _period == p;
+                return GestureDetector(
+                  onTap: () { setState(() => _period = p); _load(); },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: sel ? Colors.black : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+                    child: Text(_periodLabels[p] ?? p, style: TextStyle(fontSize: 11, color: sel ? Colors.white : Colors.grey, fontWeight: sel ? FontWeight.bold : FontWeight.normal)),
+                  ),
+                );
+              }),
+              const Spacer(),
+              if (!_loading && _points.isNotEmpty)
+                Text(
+                  '${_variation >= 0 ? '+' : ''}${_variation.toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _variation >= 0 ? const Color(0xFF2E7D32) : Colors.red),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Gráfico
+          SizedBox(
+            height: 80,
+            child: _loading
+                ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E7D32))))
+                : _points.isEmpty
+                    ? const Center(child: Text('Sem dados', style: TextStyle(color: Colors.grey, fontSize: 12)))
+                    : _buildBars(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBars() {
+    final values = _points.map((p) => (p['value'] as num?)?.toDouble() ?? 0).toList();
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final range = maxVal - minVal;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(_points.length, (i) {
+        final proportion = range > 0 ? (values[i] - minVal) / range : 1.0;
+        final h = 10.0 + (proportion * 60.0);
+        final isLast = i == _points.length - 1;
+        return Flexible(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Container(
+              width: 18,
+              height: h,
+              decoration: BoxDecoration(
+                color: isLast ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }
