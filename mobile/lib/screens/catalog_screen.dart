@@ -6,6 +6,7 @@
  * Alterações: Rafaela Jacobsen | RA: 25004280
  */
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,6 +23,7 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   final _functions = FirebaseFunctions.instance;
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
   List<Map<String, dynamic>> _startups = [];
   bool _loading = true;
   String? _selectedStage;
@@ -42,8 +44,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), _loadStartups);
   }
 
   Future<void> _loadStartups() async {
@@ -144,20 +152,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: Column(
         children: [
-          // Busca e filtro
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Campo de busca
                 TextFormField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -177,12 +180,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
                     ),
                   ),
-                  onFieldSubmitted: (_) => _loadStartups(),
+                  onChanged: _onSearchChanged,
+                  onFieldSubmitted: (_) {
+                    _searchDebounce?.cancel();
+                    _loadStartups();
+                  },
                 ),
-
                 const SizedBox(height: 12),
-
-                // Filtro por estágio
                 SizedBox(
                   height: 36,
                   child: ListView.separated(
@@ -210,8 +214,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ],
             ),
           ),
-
-          // Lista de startups
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
@@ -267,67 +269,40 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          // Nome e estágio
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: Text(
                                                   startup['name'] as String? ?? '',
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                 ),
                                               ),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                 decoration: BoxDecoration(
                                                   color: _stageColor(stage).withOpacity(0.1),
                                                   borderRadius: BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
                                                   _stageLabel(stage),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: _stageColor(stage),
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                                  style: TextStyle(fontSize: 12, color: _stageColor(stage), fontWeight: FontWeight.bold),
                                                 ),
                                               ),
                                             ],
                                           ),
-
                                           const SizedBox(height: 8),
-
-                                          // Descrição curta
                                           Text(
                                             startup['shortDescription'] as String? ?? '',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey,
-                                            ),
+                                            style: const TextStyle(fontSize: 14, color: Colors.grey),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-
                                           const SizedBox(height: 12),
-
-                                          // Preço do token
                                           Text(
                                             'Token: R\$ ${(priceCents / 100).toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF2E7D32),
-                                            ),
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                                           ),
-
                                           const SizedBox(height: 8),
-
-                                          // Tags
                                           Wrap(
                                             spacing: 6,
                                             children: tags.map((tag) => Chip(
