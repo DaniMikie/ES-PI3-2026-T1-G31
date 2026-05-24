@@ -8,6 +8,7 @@
  */
 
 import {onCall, HttpsError} from "firebase-functions/https";
+import * as logger from "firebase-functions/logger";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
 import {getStartupById} from "../../startups/repositories/startupRepository";
@@ -16,6 +17,7 @@ import {
   updateBalance,
   removeTokens,
   saveTransaction,
+  recalculateTokenPrice,
 } from "../repositories/exchangeRepository";
 import {TransactionDocument} from "../types";
 
@@ -74,7 +76,14 @@ export const sellTokens = onCall(async (request) => {
   };
   const transactionId = await saveTransaction(user.uid, transaction);
 
-  // 10. Retorna resultado pro Flutter
+  // 10. Recalcula o preço do token (não bloqueia a resposta se falhar)
+  try {
+    await recalculateTokenPrice(startupId);
+  } catch (e) {
+    logger.error("Erro ao recalcular preco:", e);
+  }
+
+  // 11. Retorna resultado pro Flutter
   return {
     data: {
       transactionId,

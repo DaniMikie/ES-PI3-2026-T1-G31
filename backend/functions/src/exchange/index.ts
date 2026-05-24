@@ -8,6 +8,7 @@ export {addCredits} from "./handlers/addCredits";
 export {buyTokens} from "./handlers/buyTokens";
 export {cancelOffer} from "./handlers/cancelOffer";
 export {createOffer} from "./handlers/createOffer";
+export {getStartupTokenHistory} from "./handlers/getStartupTokenHistory";
 export {getTokenHistory} from "./handlers/getTokenHistory";
 export {getWallet} from "./handlers/getWallet";
 export {listOffers} from "./handlers/listOffers";

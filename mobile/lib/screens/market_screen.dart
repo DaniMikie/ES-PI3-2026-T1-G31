@@ -150,8 +150,8 @@ class _MarketScreenState extends State<MarketScreen> {
                           final s = lista[index];
                           final name = s['name'] as String? ?? '';
                           final stage = s['stage'] as String? ?? '';
-                          final priceCents = s['currentTokenPriceCents'] as int? ?? 0;
-                          final totalTokens = s['totalTokensIssued'] as int? ?? 0;
+                          final priceCents = s['currentTokenPriceCents'] is num ? (s['currentTokenPriceCents'] as num).toInt() : 0;
+                          final totalTokens = s['totalTokensIssued'] is num ? (s['totalTokensIssued'] as num).toInt() : 0;
                           final tags = List<String>.from(s['tags'] ?? []);
                           final logo = name.length >= 2 ? name.substring(0, 2).toUpperCase() : 'S';
 

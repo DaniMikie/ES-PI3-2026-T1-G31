@@ -328,9 +328,9 @@ class _StartupCardHome extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = startup['name'] as String? ?? '';
     final tags = List<String>.from(startup['tags'] ?? []);
-    final capitalCents = startup['capitalRaisedCents'] as int? ?? 0;
-    final totalTokens = startup['totalTokensIssued'] as int? ?? 0;
-    final priceCents = startup['currentTokenPriceCents'] as int? ?? 0;
+    final capitalCents = startup['capitalRaisedCents'] is num ? (startup['capitalRaisedCents'] as num).toInt() : 0;
+    final totalTokens = startup['totalTokensIssued'] is num ? (startup['totalTokensIssued'] as num).toInt() : 0;
+    final priceCents = startup['currentTokenPriceCents'] is num ? (startup['currentTokenPriceCents'] as num).toInt() : 0;
     // Usa a primeira tag como categoria e shortDescription como descrição
     final categoria = tags.isNotEmpty ? tags.first : '';
     final descricao = startup['shortDescription'] as String? ?? '';

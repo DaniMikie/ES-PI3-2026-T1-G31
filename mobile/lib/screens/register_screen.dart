@@ -87,8 +87,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMsg = 'Erro ao salvar dados do usuário';
+          if (e is FirebaseFunctionsException) {
+            errorMsg = e.message ?? errorMsg;
+          }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Erro ao salvar dados do usuário')),
+            SnackBar(content: Text(errorMsg)),
           );
         }
       }

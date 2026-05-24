@@ -40,7 +40,7 @@ class _SellScreenState extends State<SellScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Anunciar tokens', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
+            const Text('Vender tokens', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(14),
@@ -69,13 +69,13 @@ class _SellScreenState extends State<SellScreen> {
               ]),
             ),
             const SizedBox(height: 24),
-            const Text('Quantia de tokens a ser anunciada', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Quantia de tokens para venda', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            const Text('Digite a quantidade de tokens a ser vendida', style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const Text('Digite a quantidade de tokens que deseja vender', style: TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 10),
             TextField(
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: '010', suffixText: 'Tokens', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300))),
+              decoration: InputDecoration(hintText: '10', suffixText: 'Tokens', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300))),
               onChanged: (v) => setState(() => quantity = int.tryParse(v) ?? 0),
             ),
             const SizedBox(height: 20),
@@ -92,7 +92,7 @@ class _SellScreenState extends State<SellScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 onPressed: quantity > 0 ? _efetuarVenda : null,
-                child: const Text('Efetuar anuncio', style: TextStyle(color: Colors.white, fontSize: 18)),
+                child: const Text('Efetuar venda', style: TextStyle(color: Colors.white, fontSize: 18)),
               ),
             ),
             const SizedBox(height: 20),
@@ -111,7 +111,8 @@ class _SellScreenState extends State<SellScreen> {
       final innerData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
       final positions = List<Map<String, dynamic>>.from((innerData['positions'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? []);
       final pos = positions.where((p) => p['startupId'] == widget.startupId).toList();
-      final userQty = pos.isNotEmpty ? (pos.first['quantity'] as int? ?? 0) : 0;
+      final rawQty = pos.isNotEmpty ? pos.first['quantity'] : 0;
+      final userQty = rawQty is int ? rawQty : (rawQty is num ? rawQty.toInt() : 0);
       if (userQty < quantity) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Voce possui apenas $userQty tokens'), backgroundColor: Colors.red));
         return;
@@ -165,9 +166,7 @@ class _SellScreenState extends State<SellScreen> {
                         } on FirebaseAuthException catch (_) {
                           setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                         } on FirebaseFunctionsException catch (e) {
-                          Navigator.pop(dialogContext);
-                          await Future.delayed(const Duration(milliseconds: 100));
-                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Tokens insuficientes'), backgroundColor: Colors.red));
+                          setDialogState(() { erro = e.message ?? 'Erro ao vender'; loading = false; });
                         } catch (_) {
                           setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                         }

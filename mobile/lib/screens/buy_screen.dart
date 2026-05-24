@@ -75,7 +75,7 @@ class _BuyScreenState extends State<BuyScreen> {
             const SizedBox(height: 10),
             TextField(
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: '010', suffixText: 'Tokens', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300))),
+              decoration: InputDecoration(hintText: '10', suffixText: 'Tokens', filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300))),
               onChanged: (v) => setState(() => quantity = int.tryParse(v) ?? 0),
             ),
             const SizedBox(height: 20),
@@ -109,8 +109,10 @@ class _BuyScreenState extends State<BuyScreen> {
       final walletResult = await walletCallable.call();
       final walletData = Map<String, dynamic>.from(walletResult.data as Map);
       final innerData = Map<String, dynamic>.from(walletData['data'] as Map? ?? walletData);
-      final balanceCents = innerData['balanceCents'] as int? ?? 0;
-      if (balanceCents < (quantity * widget.tokenPrice * 100).round()) {
+      final rawBalance = innerData['balanceCents'];
+      final balanceCents = rawBalance is int ? rawBalance : (rawBalance is num ? rawBalance.toInt() : 0);
+      final costCents = (quantity * widget.tokenPrice * 100).round();
+      if (balanceCents < costCents) {
         if (mounted) _showInsuficiente();
         return;
       }
@@ -162,10 +164,17 @@ class _BuyScreenState extends State<BuyScreen> {
                           }
                         } on FirebaseAuthException catch (_) {
                           setDialogState(() { erro = 'Senha incorreta'; loading = false; });
-                        } on FirebaseFunctionsException catch (_) {
+                        } on FirebaseFunctionsException catch (e) {
                           Navigator.pop(dialogContext);
                           await Future.delayed(const Duration(milliseconds: 100));
-                          if (mounted) _showInsuficiente();
+                          if (mounted) {
+                            if (e.code == 'failed-precondition' || (e.message ?? '').toLowerCase().contains('saldo')) {
+                              _showInsuficiente();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Colors.red));
+                              Navigator.pop(context);
+                            }
+                          }
                         } catch (_) {
                           setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                         }
@@ -183,43 +192,19 @@ class _BuyScreenState extends State<BuyScreen> {
   }
 
   void _showInsuficiente() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => _InsuficienteScreen(onVoltar: () => Navigator.pop(context))));
-  }
-}
-
-class _InsuficienteScreen extends StatelessWidget {
-  final VoidCallback onVoltar;
-  const _InsuficienteScreen({required this.onVoltar});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Container(
-          margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black.withOpacity(0.1))]),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Voce nao possui\nsaldo suficiente', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text('Clique para consultar sua carteira', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 14)),
-                Icon(Icons.arrow_forward, size: 14, color: Colors.green),
-              ]),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity, height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                  onPressed: () { Navigator.pop(context); onVoltar(); },
-                  child: const Text('Voltar para o balcao', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-              ),
-            ],
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Saldo insuficiente', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Voce nao possui saldo suficiente para esta compra. Adicione saldo na sua carteira.'),
+        actions: [
+          ElevatedButton(
+            onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: const Text('Voltar', style: TextStyle(color: Colors.white)),
           ),
-        ),
+        ],
       ),
     );
   }

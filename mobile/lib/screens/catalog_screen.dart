@@ -241,7 +241,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 final startup = _startups[index];
                                 final stage = startup['stage'] as String? ?? '';
                                 final tags = List<String>.from(startup['tags'] ?? []);
-                                final priceCents = startup['currentTokenPriceCents'] as int? ?? 0;
+                                final priceCents = startup['currentTokenPriceCents'] is num ? (startup['currentTokenPriceCents'] as num).toInt() : 0;
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12),

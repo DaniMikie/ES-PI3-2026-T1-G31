@@ -5,8 +5,8 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class InvestmentConfirmScreen extends StatefulWidget {
   final String startupId;
@@ -45,16 +45,21 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
     setState(() => _loadingConfirm = true);
 
     try {
-      final callable = _functions.httpsCallable('investInStartup');
+      // Re-autentica o usuário com a senha informada
+      final user = FirebaseAuth.instance.currentUser!;
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: user.email!, password: senha),
+      );
 
+      // Chama buyTokens no backend (envia apenas startupId e quantity)
+      final callable = _functions.httpsCallable('buyTokens');
       final result = await callable.call({
         'startupId': widget.startupId,
-        'valorInvestido': widget.valorInvestido,
-        'quantidadeTokens': widget.quantidadeTokens,
-        'senha': senha,
+        'quantity': widget.quantidadeTokens,
       });
 
       final data = Map<String, dynamic>.from(result.data as Map);
+      final buyData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
 
       if (!mounted) return;
 
@@ -66,30 +71,37 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            data['message'] as String? ??
-                'Investimento confirmado: ${widget.quantidadeTokens} tokens em ${widget.startupNome}',
+            'Compra realizada! ${buyData['quantity'] ?? widget.quantidadeTokens} tokens de ${widget.startupNome}',
           ),
           backgroundColor: const Color(0xFF2E7D32),
         ),
       );
 
       Navigator.pop(context, true);
+    } on FirebaseAuthException catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingConfirm = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Senha incorreta.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-
-      setState(() => _loadingConfirm = false);
-
+      setState(() {
+        _loadingConfirm = false;
+        _modalAberto = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message ?? 'Erro ao confirmar investimento.'),
+          content: Text(e.message ?? 'Saldo insuficiente.'),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
       if (!mounted) return;
-
       setState(() => _loadingConfirm = false);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Erro inesperado ao confirmar investimento.'),
@@ -116,20 +128,10 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 32),
-
-                        const Center(
-                          child: Text(
-                            'MesclaInvest',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
+                        Center(
+                          child: Image.asset('assets/images/logo.png', width: 200),
                         ),
-
                         const SizedBox(height: 28),
-
                         Row(
                           children: [
                             GestureDetector(
@@ -147,9 +149,7 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 28),
-
                         const Text(
                           'Aplicar investimento',
                           style: TextStyle(
@@ -158,16 +158,12 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                             color: Color(0xFF2E7D32),
                           ),
                         ),
-
                         const SizedBox(height: 8),
-
                         const Text(
                           'Confira os dados do seu investimento antes de confirmar.',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
-
                         const SizedBox(height: 28),
-
                         _InfoCard(
                           startupNome: widget.startupNome,
                           valorInvestido: widget.valorInvestido,
@@ -177,12 +173,11 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                   child: ElevatedButton(
                     onPressed:
-                    _modalAberto || _loadingConfirm ? null : _abrirModal,
+                        _modalAberto || _loadingConfirm ? null : _abrirModal,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E7D32),
                       foregroundColor: Colors.white,
@@ -205,7 +200,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                 ),
               ],
             ),
-
             if (_modalAberto)
               GestureDetector(
                 onTap: _loadingConfirm ? null : _fecharModal,
@@ -213,7 +207,6 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
                   color: Colors.black.withOpacity(0.35),
                 ),
               ),
-
             if (_modalAberto)
               Positioned(
                 left: 24,
@@ -262,7 +255,7 @@ class _InfoCard extends StatelessWidget {
         children: [
           _row('Startup', startupNome),
           const SizedBox(height: 12),
-          _row('Valor investido', 'R\$ ${valorInvestido.toStringAsFixed(2)}'),
+          _row('Valor investido', 'R\$ ${valorInvestido.toStringAsFixed(2).replaceAll('.', ',')}'),
           const SizedBox(height: 12),
           _row('Tokens', quantidadeTokens.toString()),
         ],
@@ -351,65 +344,37 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
                   color: Colors.black,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               const Text(
                 'Digite sua senha para realizar a compra',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 20),
-
               TextFormField(
                 controller: _senhaController,
                 enabled: !widget.loading,
                 obscureText: !_senhaVisivel,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.lock_outline,
-                    color: Colors.grey,
-                  ),
+                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _senhaVisivel
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                      _senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                       color: Colors.grey,
                     ),
-                    onPressed: widget.loading
-                        ? null
-                        : () => setState(
-                          () => _senhaVisivel = !_senhaVisivel,
-                    ),
+                    onPressed: widget.loading ? null : () => setState(() => _senhaVisivel = !_senhaVisivel),
                   ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Color(0xFF2E7D32),
-                      width: 2,
-                    ),
-                  ),
-                  errorBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.red),
-                  ),
-                  focusedErrorBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.red, width: 2),
-                  ),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade400)),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
+                  errorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.red)),
+                  focusedErrorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.red, width: 2)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Informe sua senha';
-                  }
+                  if (value == null || value.isEmpty) return 'Informe sua senha';
                   return null;
                 },
               ),
-
               const SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -420,27 +385,16 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
                     disabledBackgroundColor: Colors.grey.shade400,
                     disabledForegroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(32),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
                     elevation: 0,
                   ),
                   child: widget.loading
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                      : const Text(
-                    'Confirmar',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Confirmar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
