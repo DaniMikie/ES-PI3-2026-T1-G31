@@ -80,12 +80,12 @@ export const getTokenHistory = onCall(async (request) => {
     let label: string;
 
     if (groupBy === "hora") {
-      label = `${createdAt.getHours()}h`;
+      label = `${String(createdAt.getHours()).padStart(2, "0")}:00`;
     } else if (groupBy === "dia") {
-      label = `${createdAt.getDate()}/${createdAt.getMonth() + 1}`;
+      label = `${String(createdAt.getDate()).padStart(2, "0")}/${String(createdAt.getMonth() + 1).padStart(2, "0")}`;
     } else if (groupBy === "semana") {
       const weekNum = Math.ceil(createdAt.getDate() / 7);
-      label = `S${weekNum} ${createdAt.getMonth() + 1}`;
+      label = `S${weekNum}/${createdAt.getMonth() + 1}`;
     } else {
       const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       label = months[createdAt.getMonth()];

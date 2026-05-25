@@ -23,6 +23,31 @@ class SellScreen extends StatefulWidget {
 class _SellScreenState extends State<SellScreen> {
   int quantity = 0;
   double get totalValue => quantity * widget.tokenPrice;
+  int _myTokens = 0;
+  bool _loadingTokens = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyTokens();
+  }
+
+  Future<void> _loadMyTokens() async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
+      final result = await callable.call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final innerData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final positions = List<Map<String, dynamic>>.from(
+        (innerData['positions'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+      );
+      final pos = positions.where((p) => p['startupId'] == widget.startupId).toList();
+      final rawQty = pos.isNotEmpty ? pos.first['quantity'] : 0;
+      if (mounted) setState(() { _myTokens = rawQty is int ? rawQty : (rawQty is num ? rawQty.toInt() : 0); _loadingTokens = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingTokens = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +82,10 @@ class _SellScreenState extends State<SellScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('${widget.totalTokens} Tokens disponiveis', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green)),
+            _loadingTokens
+                ? const Text('Carregando...', style: TextStyle(color: Colors.grey, fontSize: 13))
+                : Text('Voce possui $_myTokens tokens disponiveis', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
+            const SizedBox(height: 4),
             Text('Valor atual do token: R\$ ${widget.tokenPrice.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 6),
             GestureDetector(
@@ -103,27 +131,16 @@ class _SellScreenState extends State<SellScreen> {
   }
 
   void _efetuarVenda() async {
-    // Verifica tokens antes
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
-      final result = await callable.call();
-      final data = Map<String, dynamic>.from(result.data as Map);
-      final innerData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
-      final positions = List<Map<String, dynamic>>.from((innerData['positions'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? []);
-      final pos = positions.where((p) => p['startupId'] == widget.startupId).toList();
-      final rawQty = pos.isNotEmpty ? pos.first['quantity'] : 0;
-      final userQty = rawQty is int ? rawQty : (rawQty is num ? rawQty.toInt() : 0);
-      if (userQty < quantity) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Voce possui apenas $userQty tokens'), backgroundColor: Colors.red));
-        return;
-      }
-    } catch (_) {}
-
+    if (_myTokens < quantity) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Voce possui apenas $_myTokens tokens'), backgroundColor: Colors.red));
+      return;
+    }
     _showAuthDialog();
   }
 
   void _showAuthDialog() {
     final senhaController = TextEditingController();
+    bool senhaVisivel = false;
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -143,7 +160,20 @@ class _SellScreenState extends State<SellScreen> {
                   const Text('Digite sua senha para realizar a venda', style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 20),
                   if (erro != null) Container(width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                  TextField(controller: senhaController, obscureText: true, enabled: !loading, decoration: InputDecoration(hintText: '--------', prefixIcon: const Icon(Icons.lock_outline), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                  TextField(
+                    controller: senhaController,
+                    obscureText: !senhaVisivel,
+                    enabled: !loading,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity, height: 55,

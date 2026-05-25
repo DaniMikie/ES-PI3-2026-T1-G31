@@ -9,5 +9,6 @@
 export {createStartupQuestion} from "./handlers/createStartupQuestion";
 export {getStartupContent} from "./handlers/getStartupContent";
 export {getStartupDetails} from "./handlers/getStartupDetails";
+export {getStartupUpdates} from "./handlers/getStartupUpdates";
 export {listStartups} from "./handlers/listStartups";
 export {seedStartupCatalog} from "./handlers/seedStartupCatalog";

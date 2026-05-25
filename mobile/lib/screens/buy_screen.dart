@@ -123,6 +123,7 @@ class _BuyScreenState extends State<BuyScreen> {
 
   void _showAuthDialog() {
     final senhaController = TextEditingController();
+    bool senhaVisivel = false;
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -142,7 +143,20 @@ class _BuyScreenState extends State<BuyScreen> {
                   const Text('Digite sua senha para realizar a compra', style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 20),
                   if (erro != null) Container(width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                  TextField(controller: senhaController, obscureText: true, enabled: !loading, decoration: InputDecoration(hintText: '--------', prefixIcon: const Icon(Icons.lock_outline), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                  TextField(
+                    controller: senhaController,
+                    obscureText: !senhaVisivel,
+                    enabled: !loading,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity, height: 55,
