@@ -299,5 +299,25 @@ export async function seedDemoStartups(): Promise<string[]> {
     });
   }
 
+  // Seed de atualizações/eventos
+  const demoUpdates = [
+    {startupId: "greenpulse", title: "Novo cliente enterprise fechado", content: "Fechamos contrato com uma industria de grande porte para monitoramento energetico.", type: "update"},
+    {startupId: "greenpulse", title: "Evento: Demo Day Mescla", content: "Participaremos do Demo Day do Mescla apresentando nossos resultados do semestre.", type: "event"},
+    {startupId: "medconnect", title: "1000 teleconsultas realizadas", content: "Atingimos a marca de 1000 teleconsultas na plataforma em menos de 3 meses.", type: "update"},
+    {startupId: "medconnect", title: "Evento: Hackathon Saude Digital", content: "Estaremos no Hackathon de Saude Digital da PUC-Campinas como mentores.", type: "event"},
+    {startupId: "agrosmart", title: "Piloto com produtor rural", content: "Iniciamos piloto com produtor de cafe na regiao de Campinas.", type: "update"},
+    {startupId: "eduflex", title: "Parceria com escola publica", content: "Firmamos parceria com escola municipal para teste da plataforma adaptativa.", type: "update"},
+    {startupId: "fintoken", title: "MVP em desenvolvimento", content: "Estamos desenvolvendo o MVP do sistema de pagamentos com previsao para proximo mes.", type: "update"},
+  ];
+
+  for (const u of demoUpdates) {
+    await startupsCollection.doc(u.startupId).collection("updates").add({
+      title: u.title,
+      content: u.content,
+      type: u.type,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+
   return demoStartups.map((startup) => startup.id);
 }

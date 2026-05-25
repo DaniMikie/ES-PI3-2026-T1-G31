@@ -11,7 +11,7 @@ import {FieldValue} from "firebase-admin/firestore";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
 import {getStartupById} from "../../startups/repositories/startupRepository";
-import {getTokenPosition, removeTokens} from "../repositories/exchangeRepository";
+import {getTokenPosition, removeTokens, saveTransaction} from "../repositories/exchangeRepository";
 import {db} from "../../startups/shared/firebase";
 
 export const createOffer = onCall(async (request) => {
@@ -47,6 +47,16 @@ export const createOffer = onCall(async (request) => {
     priceCents,
     status: "active",
     createdAt: FieldValue.serverTimestamp(),
+  });
+
+  // Registra no historico como anuncio
+  await saveTransaction(user.uid, {
+    type: "sell",
+    startupId,
+    startupName: startup.name,
+    quantity,
+    priceCents,
+    totalCents: quantity * priceCents,
   });
 
   return {

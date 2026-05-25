@@ -98,6 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () async {
                   if (novaSenhaController.text != confirmarSenhaController.text) { setDialogState(() => erro = 'As senhas nao coincidem'); return; }
                   if (novaSenhaController.text.length < 6) { setDialogState(() => erro = 'A nova senha deve ter pelo menos 6 caracteres'); return; }
+                  if (novaSenhaController.text == senhaAtualController.text) { setDialogState(() => erro = 'A nova senha deve ser diferente da atual'); return; }
                   Navigator.pop(dialogContext);
                   try {
                     final user = FirebaseAuth.instance.currentUser!;

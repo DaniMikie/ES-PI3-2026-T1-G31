@@ -500,12 +500,15 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                   _buildTab('A Startup', 0),
                   const SizedBox(width: 12),
                   _buildTab('Os tokens', 1),
+                  const SizedBox(width: 12),
+                  _buildTab('Novidades', 2),
                 ],
               ),
               const SizedBox(height: 24),
               // Content
               if (_tabIndex == 0) _buildStartupTab(),
               if (_tabIndex == 1) _buildTokensTab(),
+              if (_tabIndex == 2) _buildUpdatesTab(),
             ],
           ),
         ),
@@ -541,9 +544,16 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   Widget _buildStartupTab() {
     final description = _startup!['description'] as String? ?? '';
     final executiveSummary = _startup!['executiveSummary'] as String? ?? '';
+    final pitchDeckUrl = _startup!['pitchDeckUrl'] as String? ?? '';
     final founders = List<Map<String, dynamic>>.from(
       (_startup!['founders'] as List?)?.map(
             (f) => Map<String, dynamic>.from(f as Map),
+          ) ??
+          [],
+    );
+    final externalMembers = List<Map<String, dynamic>>.from(
+      (_startup!['externalMembers'] as List?)?.map(
+            (m) => Map<String, dynamic>.from(m as Map),
           ) ??
           [],
     );
@@ -630,25 +640,86 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ...founders.map(
           (f) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${f['equityPercent'] ?? 0}%',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Text(
+                      '${f['equityPercent'] ?? 0}%',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${f['name']} - ${f['role']}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+                if (f['bio'] != null && (f['bio'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    f['bio'] as String,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '${f['name']} - ${f['role']}',
-                  style: const TextStyle(fontSize: 14),
-                ),
+                ],
               ],
             ),
           ),
         ),
         const SizedBox(height: 24),
+
+        // Mentores e conselheiros
+        if (externalMembers.isNotEmpty) ...[
+          const Text(
+            'Mentores e conselheiros',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...externalMembers.map(
+            (m) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.person_outline, size: 18, color: Colors.grey),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          m['name'] as String? ?? '',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${m['role'] ?? ''}${m['organization'] != null ? ' • ${m['organization']}' : ''}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // Perguntas e respostas
         const Text(
@@ -877,7 +948,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 ),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           // Campo de pergunta privada
           Container(
             width: double.infinity,
@@ -919,6 +990,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
         ],
 
         // Sumário executivo
@@ -936,6 +1008,36 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           executiveSummary,
           style: const TextStyle(fontSize: 14, color: Colors.black87),
         ),
+
+        // Plano de negócios / Pitch Deck
+        if (pitchDeckUrl.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Text(
+            'Plano de negócios',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openVideo(pitchDeckUrl),
+              icon: const Icon(Icons.description_outlined, size: 20),
+              label: const Text('Abrir plano de negócios'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2E7D32),
+                side: const BorderSide(color: Color(0xFF2E7D32)),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+          ),
+        ],
+
         const SizedBox(height: 32),
       ],
     );
@@ -1104,6 +1206,95 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildUpdatesTab() {
+    return _UpdatesList(startupId: widget.startupId);
+  }
+}
+
+// Widget de atualizações e eventos
+class _UpdatesList extends StatefulWidget {
+  final String startupId;
+  const _UpdatesList({required this.startupId});
+
+  @override
+  State<_UpdatesList> createState() => _UpdatesListState();
+}
+
+class _UpdatesListState extends State<_UpdatesList> {
+  final _functions = FirebaseFunctions.instance;
+  List<Map<String, dynamic>> _updates = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final callable = _functions.httpsCallable('getStartupUpdates');
+      final result = await callable.call({'startupId': widget.startupId});
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final updates = List<Map<String, dynamic>>.from(
+        (inner['updates'] as List?)?.map((u) => Map<String, dynamic>.from(u as Map)) ?? [],
+      );
+      if (mounted) setState(() { _updates = updates; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: Color(0xFF2E7D32))));
+    }
+    if (_updates.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(child: Text('Nenhuma atualizacao ainda', style: TextStyle(color: Colors.grey))),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Atualizações e eventos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const SizedBox(height: 16),
+        ..._updates.map((u) {
+          final isEvent = u['type'] == 'event';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(color: isEvent ? const Color(0xFF2E7D32) : Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: isEvent ? const Color(0xFF2E7D32).withOpacity(0.05) : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(isEvent ? Icons.event : Icons.campaign_outlined, size: 18, color: isEvent ? const Color(0xFF2E7D32) : Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(isEvent ? 'Evento' : 'Atualização', style: TextStyle(fontSize: 11, color: isEvent ? const Color(0xFF2E7D32) : Colors.grey, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(u['title'] as String? ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(u['content'] as String? ?? '', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 32),
       ],
     );
   }
