@@ -85,7 +85,7 @@ class _MarketScreenState extends State<MarketScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: Image.asset('assets/images/logo.png', width: 180)),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
               Text(
                 isBuyMode ? 'Comprar tokens' : 'Anunciar tokens',
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),

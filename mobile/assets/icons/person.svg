@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="25px" height="25px" viewBox="0 0 25 25" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Icon</title>
+    <g id="Perfil" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+        <g id="Tela-Perfil" fill-rule="nonzero" transform="translate(-73, -765)">
+            <g id="Icon" fill-rule="evenodd" transform="translate(77.3333, 785.5001)">
+                <polygon id="Path" fill-rule="nonzero" transform="translate(8, -8) rotate(-0.0593) translate(-8, 8)" points="-4 -20 20 -20 20 4 -4 4"></polygon>
+                <g id="Group" transform="translate(0, -17)" fill-rule="nonzero" stroke="#000000" stroke-width="1.5">
+                    <path d="M16,18 L16,16 C16,14.9391337 15.5785715,13.9217184 14.828426,13.1715729 C14.0782805,12.4214274 13.0608663,12 12,12 L4,12 C2.93913402,12 1.92171819,12.4214274 1.17157269,13.1715729 C0.421427188,13.9217184 0,14.9391337 0,16 L0,18" id="Icon"></path>
+                    <path d="M8,8 C10.2091398,8 12,6.20913906 12,4 C12,1.79086089 10.2091398,0 8,0 C5.79086151,0 4,1.79086089 4,4 C4,6.20913906 5.79086151,8 8,8 Z" id="Icon"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

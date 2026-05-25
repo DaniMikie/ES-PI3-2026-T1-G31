@@ -7,6 +7,7 @@ import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'wallet_screen.dart';
 import 'market_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -54,25 +55,49 @@ class _MainScreenState extends State<MainScreen> {
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         elevation: 8,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            icon: SvgPicture.asset('assets/icons/home.svg',
+              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
+            activeIcon: SvgPicture.asset('assets/icons/home.svg',
+              colorFilter: const ColorFilter.mode(Color(0xFF2E7D32), BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
             label: 'Início',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.show_chart_outlined),
-            activeIcon: Icon(Icons.show_chart),
+            icon: SvgPicture.asset('assets/icons/chart.svg',
+              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
+            activeIcon: SvgPicture.asset('assets/icons/chart.svg',
+              colorFilter: const ColorFilter.mode(Color(0xFF2E7D32), BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
             label: 'Balcão',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: Icon(Icons.account_balance_wallet),
+            icon: SvgPicture.asset('assets/icons/wallet.svg',
+              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
+            activeIcon: SvgPicture.asset('assets/icons/wallet.svg',
+              colorFilter: const ColorFilter.mode(Color(0xFF2E7D32), BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
             label: 'Carteira',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
+            icon: SvgPicture.asset('assets/icons/person.svg',
+              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
+            activeIcon: SvgPicture.asset('assets/icons/person.svg',
+              colorFilter: const ColorFilter.mode(Color(0xFF2E7D32), BlendMode.srcIn),
+              width: 24, height: 24,
+            ),
             label: 'Perfil',
           ),
         ],
