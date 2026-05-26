@@ -364,7 +364,28 @@ class _BuyScreenState extends State<BuyScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Saldo insuficiente', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Voce nao possui saldo suficiente para esta compra. Adicione saldo na sua carteira.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Voce nao possui saldo suficiente para esta compra.'),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx); // fecha dialog
+                // Pop até a MainScreen
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Ir para a carteira', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 14)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, size: 14, color: Color(0xFF2E7D32)),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); },

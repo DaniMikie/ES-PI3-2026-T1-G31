@@ -156,24 +156,34 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
   void _showSaldoInsuficiente(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Você não possui saldo suficiente', style: TextStyle(color: Colors.red)),
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Saldo insuficiente', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Quer saber quanto possui?', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 8),
+            const Text('Voce nao possui saldo suficiente para esta compra.', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 12),
             GestureDetector(
-              onTap: () { Navigator.pop(context); Navigator.pop(context); },
-              child: const Text('Clique para consultar sua carteira →', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(dialogCtx);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Ir para a carteira', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 14)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, size: 14, color: Color(0xFF2E7D32)),
+                ],
+              ),
             ),
           ],
         ),
         actions: [
           ElevatedButton(
-            onPressed: () { Navigator.pop(context); Navigator.pop(context); },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, side: const BorderSide(color: Colors.grey)),
-            child: const Text('Voltar para startup'),
+            onPressed: () { Navigator.pop(dialogCtx); },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: const Text('Voltar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

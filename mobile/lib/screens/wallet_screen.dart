@@ -191,7 +191,18 @@ class _WalletScreenState extends State<WalletScreen> {
   int _toCents(Object? value) => _toInt(value);
 
   String _formatMoney(num value) {
-    return 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+    final parts = value.toStringAsFixed(2).split('.');
+    final intPart = parts[0];
+    final decPart = parts[1];
+    // Adiciona ponto como separador de milhar
+    final buffer = StringBuffer();
+    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
+    if (intPart.startsWith('-')) buffer.write('-');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'R\$ $buffer,$decPart';
   }
 
   String _startupLabel(String startupId) {
