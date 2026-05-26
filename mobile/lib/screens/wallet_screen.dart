@@ -42,6 +42,7 @@ class _WalletScreenState extends State<WalletScreen> {
   List<Map<String, dynamic>> _chartPoints = [];
   double _chartVariation = 0;
   bool _chartLoading = false;
+  int _transacoesVisiveis = 5;
 
   @override
   void initState() {
@@ -233,6 +234,16 @@ class _WalletScreenState extends State<WalletScreen> {
 
   void _toggleSaldo() => setState(() => _saldoVisivel = !_saldoVisivel);
 
+  double _saldoFontSize() {
+    final text = _formatMoney(_saldo);
+    final len = text.length;
+    if (len <= 12) return 32;
+    if (len <= 15) return 28;
+    if (len <= 18) return 24;
+    if (len <= 21) return 20;
+    return 16;
+  }
+
   void _addCredits() {
     final controller = TextEditingController();
 
@@ -341,6 +352,7 @@ class _WalletScreenState extends State<WalletScreen> {
   void _withdrawCredits() {
     final valorController = TextEditingController();
     final senhaController = TextEditingController();
+    final parentMessenger = ScaffoldMessenger.of(context);
 
     showDialog<void>(
       context: context,
@@ -351,7 +363,7 @@ class _WalletScreenState extends State<WalletScreen> {
         bool senhaVisivel = false;
 
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (_, setDialogState) => AlertDialog(
             title: const Text('Sacar saldo'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -450,7 +462,6 @@ class _WalletScreenState extends State<WalletScreen> {
 
                           // 4. Chama a Cloud Function withdrawCredits
                           final navigator = Navigator.of(dialogContext);
-                          final messenger = ScaffoldMessenger.of(context);
                           final callable =
                               _functions.httpsCallable('withdrawCredits');
                           await callable.call({
@@ -464,7 +475,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           await _loadWallet();
 
                           if (!mounted) return;
-                          messenger.showSnackBar(
+                          parentMessenger.showSnackBar(
                             SnackBar(
                               content: Text(
                                 'Saque de ${_formatMoney(valor)} realizado!',
@@ -564,9 +575,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                     _saldoVisivel
                                         ? _formatMoney(_saldo)
                                         : 'R\$ ••••••',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 32,
+                                      fontSize: _saldoFontSize(),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -651,6 +662,28 @@ class _WalletScreenState extends State<WalletScreen> {
                             ),
                             child: const Text(
                               '+ Adicionar Saldo',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _withdrawCredits,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                            ),
+                            child: const Text(
+                              '- Sacar',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -1020,6 +1053,10 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildTransactions() {
+    final transacoesExibidas = _transacoes.length > _transacoesVisiveis
+        ? _transacoes.sublist(0, _transacoesVisiveis)
+        : _transacoes;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1040,84 +1077,102 @@ class _WalletScreenState extends State<WalletScreen> {
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _transacoes.length,
-              separatorBuilder: (context, index) =>
-                  Divider(height: 1, color: Colors.grey.shade200),
-              itemBuilder: (context, index) {
-                final transaction = _transacoes[index];
-                final type = transaction['type']?.toString() ?? '';
-                final isBuy = type == 'buy';
-                final isCredit = type == 'credit';
-                final isWithdrawal = type == 'withdrawal';
-                final startupId = transaction['startupId']?.toString() ?? '';
-                final startupName =
-                    transaction['startupName']?.toString() ??
-                    _startupLabel(startupId);
-                final quantity = _toInt(transaction['quantity']);
-                final totalCents = _toCents(transaction['totalCents']);
-                final date = _transactionDate(transaction);
-                final title = isCredit
-                    ? 'Crédito adicionado'
-                    : isWithdrawal
-                    ? 'Saque realizado'
-                    : isBuy
-                    ? 'Compra de tokens'
-                    : 'Venda de tokens';
-                final subtitle = (isCredit || isWithdrawal)
-                    ? (date.isEmpty
-                          ? 'Saldo da carteira'
-                          : 'Saldo da carteira • $date')
-                    : '$startupName • $quantity tokens${date.isEmpty ? '' : ' • $date'}';
-
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: isWithdrawal
-                        ? Colors.black87
+            child: Column(
+              children: [
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: transacoesExibidas.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(height: 1, color: Colors.grey.shade200),
+                  itemBuilder: (context, index) {
+                    final transaction = transacoesExibidas[index];
+                    final type = transaction['type']?.toString() ?? '';
+                    final isBuy = type == 'buy';
+                    final isCredit = type == 'credit';
+                    final isWithdrawal = type == 'withdrawal';
+                    final startupId = transaction['startupId']?.toString() ?? '';
+                    final startupName =
+                        transaction['startupName']?.toString() ??
+                        _startupLabel(startupId);
+                    final quantity = _toInt(transaction['quantity']);
+                    final totalCents = _toCents(transaction['totalCents']);
+                    final date = _transactionDate(transaction);
+                    final title = isCredit
+                        ? 'Crédito adicionado'
+                        : isWithdrawal
+                        ? 'Saque realizado'
                         : isBuy
-                        ? const Color(0xFF2E7D32)
-                        : Colors.black,
-                    child: Icon(
-                      isWithdrawal
-                          ? Icons.arrow_upward
-                          : isCredit
-                          ? Icons.add
-                          : isBuy
-                          ? Icons.arrow_downward
-                          : Icons.arrow_upward,
-                      color: Colors.white,
-                      size: 18,
+                        ? 'Compra de tokens'
+                        : 'Venda de tokens';
+                    final subtitle = (isCredit || isWithdrawal)
+                        ? (date.isEmpty
+                              ? 'Saldo da carteira'
+                              : 'Saldo da carteira • $date')
+                        : '$startupName • $quantity tokens${date.isEmpty ? '' : ' • $date'}';
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: isWithdrawal
+                            ? Colors.black87
+                            : isBuy
+                            ? const Color(0xFF2E7D32)
+                            : Colors.black,
+                        child: Icon(
+                          isWithdrawal
+                              ? Icons.arrow_upward
+                              : isCredit
+                              ? Icons.add
+                              : isBuy
+                              ? Icons.arrow_downward
+                              : Icons.arrow_upward,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                      title: Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        subtitle,
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      trailing: Text(
+                        '${(isBuy || isWithdrawal) ? '-' : '+'} ${_formatMoney(totalCents / 100)}',
+                        style: TextStyle(
+                          color: (isBuy || isWithdrawal)
+                              ? Colors.red.shade700
+                              : const Color(0xFF2E7D32),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (_transacoes.length > _transacoesVisiveis)
+                  GestureDetector(
+                    onTap: () => setState(() => _transacoesVisiveis += 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                      ),
+                      child: const Center(
+                        child: Text('Ver mais', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 14)),
+                      ),
                     ),
                   ),
-                  title: Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  subtitle: Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  trailing: Text(
-                    '${(isBuy || isWithdrawal) ? '-' : '+'} ${_formatMoney(totalCents / 100)}',
-                    style: TextStyle(
-                      color: (isBuy || isWithdrawal)
-                          ? Colors.red.shade700
-                          : const Color(0xFF2E7D32),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                );
-              },
+              ],
             ),
           ),
       ],

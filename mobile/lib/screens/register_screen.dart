@@ -57,6 +57,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         await credential.user?.updateDisplayName(_nameController.text.trim());
 
+        // Envia email de verificação (necessário pra ativar MFA depois)
+        await credential.user?.sendEmailVerification();
+
         // Salva dados extras no Firestore
         final callable = _functions.httpsCallable('createUser');
         await callable.call({
@@ -67,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conta criada com sucesso!')),
+            const SnackBar(content: Text('Conta criada! Verifique seu email para ativar todas as funcionalidades.')),
           );
           Navigator.pop(context);
         }

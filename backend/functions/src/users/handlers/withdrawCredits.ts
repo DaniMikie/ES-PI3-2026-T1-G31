@@ -68,11 +68,17 @@ export const withdrawCredits = onCall(async (request) => {
     // Atualiza o saldo
     transaction.update(userRef, { balanceCents: updated });
 
-    // Registra a transação no histórico
-    const txRef = db.collection("transactions").doc();
+    // Registra a transação no histórico do usuário
+    // Correção: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+    // Alterado de db.collection("transactions") para subcoleção users/{uid}/transactions
+    // para que o listTransactions encontre o registro corretamente.
+    const txRef = db.collection("users").doc(user.uid).collection("transactions").doc();
     transaction.set(txRef, {
-      userId: user.uid,
       type: "withdrawal",
+      startupId: "",
+      startupName: "",
+      quantity: 0,
+      priceCents: 0,
       totalCents: amount,
       createdAt: FieldValue.serverTimestamp(),
     });

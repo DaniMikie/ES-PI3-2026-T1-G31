@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'buy_screen.dart';
 import 'sell_screen.dart';
+import 'my_offers_screen.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -85,43 +86,8 @@ class _MarketScreenState extends State<MarketScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: Image.asset('assets/images/logo.png', width: 180)),
-              const SizedBox(height: 30),
-              Text(
-                isBuyMode ? 'Comprar tokens' : 'Anunciar tokens',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                isBuyMode ? 'Escolha um modo para negociar seus tokens' : 'Escolha um modo para anunciar seus tokens',
-                style: const TextStyle(color: Colors.grey),
-              ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => isBuyMode = true),
-                      child: Container(
-                        height: 45,
-                        decoration: BoxDecoration(color: isBuyMode ? Colors.black : Colors.grey.shade300, borderRadius: BorderRadius.circular(30)),
-                        child: Center(child: Text('Tokens disponiveis', style: TextStyle(color: isBuyMode ? Colors.white : Colors.black, fontSize: 13))),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => isBuyMode = false),
-                      child: Container(
-                        height: 45,
-                        decoration: BoxDecoration(color: !isBuyMode ? Colors.black : Colors.grey.shade300, borderRadius: BorderRadius.circular(30)),
-                        child: Center(child: Text('Anunciar seus tokens', style: TextStyle(color: !isBuyMode ? Colors.white : Colors.black, fontSize: 13))),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              // Campo de busca
               TextField(
                 decoration: InputDecoration(
                   hintText: 'Buscar startups',
@@ -129,6 +95,42 @@ class _MarketScreenState extends State<MarketScreen> {
                   filled: true,
                   fillColor: Colors.grey.shade100,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Toggles em linha horizontal scrollável
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => isBuyMode = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(color: isBuyMode ? Colors.black : Colors.grey.shade300, borderRadius: BorderRadius.circular(30)),
+                        child: Center(child: Text('Tokens disponiveis', style: TextStyle(color: isBuyMode ? Colors.white : Colors.black, fontSize: 13, fontWeight: FontWeight.w600))),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => isBuyMode = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(color: !isBuyMode ? Colors.black : Colors.grey.shade300, borderRadius: BorderRadius.circular(30)),
+                        child: Center(child: Text('Anunciar tokens', style: TextStyle(color: !isBuyMode ? Colors.white : Colors.black, fontSize: 13, fontWeight: FontWeight.w600))),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyOffersScreen())),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(30)),
+                        child: const Center(child: Text('Meus anuncios', style: TextStyle(color: Color(0xFF2E7D32), fontSize: 13, fontWeight: FontWeight.w600))),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),

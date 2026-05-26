@@ -99,36 +99,39 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final photoUrl = FirebaseAuth.instance.currentUser?.photoURL?.trim();
     final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CircleAvatar(
-          radius: 17,
-          backgroundColor: const Color(0xFF2E7D32),
-          backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
-          child: hasPhoto
-              ? null
-              : Text(
-                  _userInitials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 17,
+            backgroundColor: const Color(0xFF2E7D32),
+            backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+            child: hasPhoto
+                ? null
+                : Text(
+                    _userInitials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            _userDisplayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              _userDisplayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
