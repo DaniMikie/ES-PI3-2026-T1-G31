@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'startup_details_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 // ── Tela Início ─────────────────────────────────────────────────
 
@@ -90,6 +92,52 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String get _userDisplayName {
+    final displayName = FirebaseAuth.instance.currentUser?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    return 'Usuário';
+  }
+  String get _userInitials {
+    final parts = _userDisplayName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+
+    return '${parts.first.characters.first}${parts.last.characters.first}'
+        .toUpperCase();
+  }
+
+  Widget _buildUserIdentity() {
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 17,
+          backgroundColor: const Color(0xFF2E7D32),
+          backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+          child: hasPhoto
+              ? null
+              : Text(
+            _userInitials,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _onFiltroTap(String filtro) {
     setState(() => _filtroSelecionado = filtro);
     _loadStartups();
@@ -155,12 +203,16 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Cabeçalho ──────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-              child: Row(
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
                 children: [
-                  Expanded(
-                    child: Center(
-                      child: Image.asset('assets/images/logo.png', width: 180),
-                    ),
+                  Center(
+                    child: Image.asset('assets/images/logo.png', width: 180),
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: _buildUserIdentity(),
                   ),
                 ],
               ),

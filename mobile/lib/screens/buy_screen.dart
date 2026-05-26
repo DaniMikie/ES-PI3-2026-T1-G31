@@ -56,7 +56,7 @@ class _BuyScreenState extends State<BuyScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white, elevation: 0,
         leading: const BackButton(color: Colors.black),
-        title: Image.asset('assets/images/logo.png', width: 150),
+        title: Image.asset('assets/images/logo.png', width: 180),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
