@@ -22,7 +22,9 @@ class SellScreen extends StatefulWidget {
 
 class _SellScreenState extends State<SellScreen> {
   int quantity = 0;
-  double get totalValue => quantity * widget.tokenPrice;
+  double? _precoCustom;
+  double get precoExibido => _precoCustom ?? widget.tokenPrice;
+  double get totalValue => quantity * precoExibido;
   int _myTokens = 0;
   bool _loadingTokens = true;
 
@@ -65,7 +67,7 @@ class _SellScreenState extends State<SellScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Vender tokens', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
+            const Text('Anunciar tokens', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(14),
@@ -86,7 +88,7 @@ class _SellScreenState extends State<SellScreen> {
                 ? const Text('Carregando...', style: TextStyle(color: Colors.grey, fontSize: 13))
                 : Text('Voce possui $_myTokens tokens disponiveis', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
             const SizedBox(height: 4),
-            Text('Valor atual do token: R\$ ${widget.tokenPrice.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            Text('Preco atual do token: R\$ ${widget.tokenPrice.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 6),
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StartupDetailsScreen(startupId: widget.startupId, startupName: widget.startupName))),
@@ -97,9 +99,9 @@ class _SellScreenState extends State<SellScreen> {
               ]),
             ),
             const SizedBox(height: 24),
-            const Text('Quantia de tokens para venda', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Quantia de tokens a anunciar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            const Text('Digite a quantidade de tokens que deseja vender', style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const Text('Digite a quantidade de tokens para venda', style: TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 10),
             TextField(
               keyboardType: TextInputType.number,
@@ -107,7 +109,26 @@ class _SellScreenState extends State<SellScreen> {
               onChanged: (v) => setState(() => quantity = int.tryParse(v) ?? 0),
             ),
             const SizedBox(height: 20),
-            const Text('Valor em reais:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Preco por token (R\$)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Defina o preco que deseja cobrar por token', style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 10),
+            TextField(
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: widget.tokenPrice.toStringAsFixed(2),
+                prefixText: 'R\$ ',
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+              ),
+              onChanged: (v) {
+                final raw = v.replaceAll(',', '.');
+                setState(() => _precoCustom = double.tryParse(raw));
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text('Valor total do anuncio:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Container(
               width: double.infinity, height: 60,
@@ -119,8 +140,8 @@ class _SellScreenState extends State<SellScreen> {
               width: double.infinity, height: 60,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                onPressed: quantity > 0 ? _efetuarVenda : null,
-                child: const Text('Efetuar venda', style: TextStyle(color: Colors.white, fontSize: 18)),
+                onPressed: quantity > 0 && precoExibido > 0 ? _efetuarAnuncio : null,
+                child: const Text('Criar anuncio', style: TextStyle(color: Colors.white, fontSize: 18)),
               ),
             ),
             const SizedBox(height: 20),
@@ -130,7 +151,7 @@ class _SellScreenState extends State<SellScreen> {
     );
   }
 
-  void _efetuarVenda() async {
+  void _efetuarAnuncio() async {
     if (_myTokens < quantity) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Voce possui apenas $_myTokens tokens'), backgroundColor: Colors.red));
       return;
@@ -157,7 +178,7 @@ class _SellScreenState extends State<SellScreen> {
                 children: [
                   const Text('Autenticacao', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Digite sua senha para realizar a venda', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  const Text('Digite sua senha para criar o anuncio', style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 20),
                   if (erro != null) Container(width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13))),
                   TextField(
@@ -185,18 +206,22 @@ class _SellScreenState extends State<SellScreen> {
                         try {
                           final user = FirebaseAuth.instance.currentUser!;
                           await user.reauthenticateWithCredential(EmailAuthProvider.credential(email: user.email!, password: senhaController.text));
-                          final callable = FirebaseFunctions.instance.httpsCallable('sellTokens');
-                          await callable.call({'startupId': widget.startupId, 'quantity': quantity});
+                          final callable = FirebaseFunctions.instance.httpsCallable('createOffer');
+                          await callable.call({
+                            'startupId': widget.startupId,
+                            'quantity': quantity,
+                            'priceCents': (precoExibido * 100).round(),
+                          });
                           Navigator.pop(dialogContext);
                           await Future.delayed(const Duration(milliseconds: 100));
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Venda realizada! $quantity tokens'), backgroundColor: Colors.green));
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Anuncio criado! $quantity tokens a R\$ ${precoExibido.toStringAsFixed(2)}'), backgroundColor: Colors.green));
                             Navigator.pop(context);
                           }
                         } on FirebaseAuthException catch (_) {
                           setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                         } on FirebaseFunctionsException catch (e) {
-                          setDialogState(() { erro = e.message ?? 'Erro ao vender'; loading = false; });
+                          setDialogState(() { erro = e.message ?? 'Erro ao criar anuncio'; loading = false; });
                         } catch (_) {
                           setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                         }
