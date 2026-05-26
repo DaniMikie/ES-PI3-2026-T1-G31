@@ -4,6 +4,10 @@
  */
 
 /*
+  Alterações: Ana Luísa Maso Mafra | RA: 25007997
+*/
+
+/*
  Alterações: Rafaela Jacobsen Braga | RA: 25004280
 */
 
@@ -318,6 +322,194 @@ class _WalletScreenState extends State<WalletScreen> {
         );
       },
     ).whenComplete(controller.dispose);
+  }
+
+  /// Exibe o dialog de saque com campo de valor e confirmação de senha.
+  /// Após autenticar o usuário via reautenticação com senha, chama
+  /// a Cloud Function `withdrawCredits` e atualiza o saldo.
+  void _withdrawCredits() {
+    final valorController = TextEditingController();
+    final senhaController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        String? valorError;
+        String? senhaError;
+        bool loading = false;
+        bool senhaVisivel = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Sacar saldo'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Campo: Valor ──────────────────────────────────────────
+                TextField(
+                  controller: valorController,
+                  enabled: !loading,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    prefixText: 'R\$ ',
+                    labelText: 'Valor a sacar',
+                    hintText: '100,00',
+                    errorText: valorError,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // ── Campo: Senha (para confirmação) ───────────────────────
+                TextField(
+                  controller: senhaController,
+                  enabled: !loading,
+                  obscureText: !senhaVisivel,
+                  decoration: InputDecoration(
+                    labelText: 'Confirme sua senha',
+                    errorText: senhaError,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        senhaVisivel
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setDialogState(() => senhaVisivel = !senhaVisivel),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        // 1. Valida o valor informado
+                        final raw =
+                            valorController.text.trim().replaceAll(',', '.');
+                        final valor = double.tryParse(raw);
+
+                        if (valor == null || valor <= 0) {
+                          setDialogState(
+                            () => valorError = 'Informe um valor maior que zero',
+                          );
+                          return;
+                        }
+
+                        // 2. Valida se a senha foi preenchida
+                        final senha = senhaController.text.trim();
+                        if (senha.isEmpty) {
+                          setDialogState(
+                            () => senhaError = 'Informe sua senha',
+                          );
+                          return;
+                        }
+
+                        setDialogState(() {
+                          loading = true;
+                          valorError = null;
+                          senhaError = null;
+                        });
+
+                        try {
+                          // 3. Reautentica o usuário com email + senha
+                          //    (garante que quem está sacando é o dono da conta)
+                          final currentUser =
+                              FirebaseAuth.instance.currentUser;
+                          if (currentUser == null || currentUser.email == null) {
+                            throw FirebaseAuthException(
+                              code: 'user-not-found',
+                              message: 'Usuário não autenticado.',
+                            );
+                          }
+
+                          final credential = EmailAuthProvider.credential(
+                            email: currentUser.email!,
+                            password: senha,
+                          );
+                          await currentUser
+                              .reauthenticateWithCredential(credential);
+
+                          // 4. Chama a Cloud Function withdrawCredits
+                          final navigator = Navigator.of(dialogContext);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final callable =
+                              _functions.httpsCallable('withdrawCredits');
+                          await callable.call({
+                            'amount': (valor * 100).round(),
+                          });
+
+                          if (!mounted) return;
+
+                          // 5. Fecha o dialog e recarrega a carteira
+                          navigator.pop();
+                          await _loadWallet();
+
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Saque de ${_formatMoney(valor)} realizado!',
+                              ),
+                              backgroundColor: Colors.black87,
+                            ),
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          // Senha incorreta ou erro de autenticação
+                          setDialogState(() {
+                            loading = false;
+                            senhaError = e.code == 'wrong-password' ||
+                                    e.code == 'invalid-credential'
+                                ? 'Senha incorreta'
+                                : 'Erro de autenticação';
+                          });
+                        } on FirebaseFunctionsException catch (e) {
+                          // Saldo insuficiente ou outro erro da function
+                          setDialogState(() {
+                            loading = false;
+                            valorError = e.code == 'failed-precondition'
+                                ? 'Saldo insuficiente'
+                                : 'Erro ao realizar saque';
+                          });
+                        } catch (e) {
+                          setDialogState(() {
+                            loading = false;
+                            valorError = 'Erro inesperado. Tente novamente.';
+                          });
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black87,
+                ),
+                child: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Confirmar saque',
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    ).whenComplete(() {
+      valorController.dispose();
+      senhaController.dispose();
+    });
   }
 
   String get _userName {
@@ -646,7 +838,6 @@ class _WalletScreenState extends State<WalletScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(_chartPoints.length, (i) {
               final value = values[i];
-              // Altura proporcional: mínimo 10px, máximo 90px
               final proportion = range > 0
                   ? (value - minValue) / range
                   : 1.0;
@@ -733,7 +924,6 @@ class _WalletScreenState extends State<WalletScreen> {
                     ? startupName.substring(0, 2).toUpperCase()
                     : 'ST';
 
-                // Calcula variação: preço médio de compra vs preço atual
                 final avgBuyCents = quantity > 0 ? totalCents / quantity : 0.0;
                 final variation = avgBuyCents > 0
                     ? ((currentPriceCents - avgBuyCents) / avgBuyCents) * 100
@@ -850,6 +1040,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 final type = transaction['type']?.toString() ?? '';
                 final isBuy = type == 'buy';
                 final isCredit = type == 'credit';
+                final isWithdrawal = type == 'withdrawal';
                 final startupId = transaction['startupId']?.toString() ?? '';
                 final startupName =
                     transaction['startupName']?.toString() ??
@@ -859,10 +1050,12 @@ class _WalletScreenState extends State<WalletScreen> {
                 final date = _transactionDate(transaction);
                 final title = isCredit
                     ? 'Crédito adicionado'
+                    : isWithdrawal
+                    ? 'Saque realizado'
                     : isBuy
                     ? 'Compra de tokens'
                     : 'Venda de tokens';
-                final subtitle = isCredit
+                final subtitle = (isCredit || isWithdrawal)
                     ? (date.isEmpty
                           ? 'Saldo da carteira'
                           : 'Saldo da carteira • $date')
@@ -874,11 +1067,15 @@ class _WalletScreenState extends State<WalletScreen> {
                     vertical: 6,
                   ),
                   leading: CircleAvatar(
-                    backgroundColor: isBuy
+                    backgroundColor: isWithdrawal
+                        ? Colors.black87
+                        : isBuy
                         ? const Color(0xFF2E7D32)
                         : Colors.black,
                     child: Icon(
-                      isCredit
+                      isWithdrawal
+                          ? Icons.arrow_upward
+                          : isCredit
                           ? Icons.add
                           : isBuy
                           ? Icons.arrow_downward
@@ -899,9 +1096,11 @@ class _WalletScreenState extends State<WalletScreen> {
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                   trailing: Text(
-                    '${isBuy ? '-' : '+'} ${_formatMoney(totalCents / 100)}',
+                    '${(isBuy || isWithdrawal) ? '-' : '+'} ${_formatMoney(totalCents / 100)}',
                     style: TextStyle(
-                      color: isBuy ? Colors.black : const Color(0xFF2E7D32),
+                      color: (isBuy || isWithdrawal)
+                          ? Colors.red.shade700
+                          : const Color(0xFF2E7D32),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
