@@ -191,18 +191,7 @@ class _WalletScreenState extends State<WalletScreen> {
   int _toCents(Object? value) => _toInt(value);
 
   String _formatMoney(num value) {
-    final parts = value.toStringAsFixed(2).split('.');
-    final intPart = parts[0];
-    final decPart = parts[1];
-    // Adiciona ponto como separador de milhar
-    final buffer = StringBuffer();
-    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
-    if (intPart.startsWith('-')) buffer.write('-');
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return 'R\$ $buffer,$decPart';
+    return 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
   String _startupLabel(String startupId) {
@@ -637,26 +626,55 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _addCredits,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2E7D32),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
+                        // ── Botões: Adicionar Saldo + Sacar ──────────────────
+                        // Implementado por Ana Luísa Maso Mafra
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _addCredits,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2E7D32),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '+ Adicionar Saldo',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              '+ Adicionar Saldo',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _withdrawCredits,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black87,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                    side: const BorderSide(
+                                      color: Color(0xFF555555),
+                                    ),
+                                  ),
+                                ),
+                                child: const Text(
+                                  '↑ Sacar',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 20),
                       ],
