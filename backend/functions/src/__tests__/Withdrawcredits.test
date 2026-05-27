@@ -1,0 +1,307 @@
+/**
+ * Testes: withdrawCredits
+ * Autor: Ana Luísa Maso Mafra | RA: 25007997
+ *
+ * Cenários testados:
+ *  - Saque com sucesso (saldo suficiente)
+ *  - Saldo insuficiente
+ *  - Valor inválido (zero, negativo, não-inteiro)
+ *  - Usuário não autenticado
+ *  - Usuário não encontrado no Firestore
+ */
+
+import * as admin from "firebase-admin";
+
+// Mocks
+
+// Mock do módulo de autenticação compartilhado
+jest.mock("../../startups/shared/auth", () => ({
+  requireAuthenticatedUser: jest.fn(),
+}));
+
+// Mock do Firestore compartilhado
+jest.mock("../../startups/shared/firebase", () => ({
+  db: {
+    collection: jest.fn(),
+    runTransaction: jest.fn(),
+  },
+}));
+
+// Evita inicializar o Firebase Admin de verdade
+jest.mock("firebase-admin/firestore", () => ({
+  FieldValue: { serverTimestamp: jest.fn(() => "SERVER_TIMESTAMP") },
+  getFirestore: jest.fn(),
+}));
+
+// Imports após mocks
+import { requireAuthenticatedUser } from "../../startups/shared/auth";
+import { db } from "../../startups/shared/firebase";
+
+// Helpers
+
+/** Simula uma chamada à function como o Firebase faria internamente */
+async function callWithdraw(
+  uid: string | null,
+  data: Record<string, unknown>
+) {
+  // Importação dinâmica para garantir que os mocks já estão registrados
+  const { withdrawCredits } = await import("./withdrawCredits");
+
+  // @ts-ignore — acessa o handler interno da onCall
+  return withdrawCredits.run({ auth: uid ? { uid } : null, data });
+}
+
+/** Cria um mock de documento Firestore */
+function makeDocSnap(exists: boolean, data?: Record<string, unknown>) {
+  return {
+    exists,
+    data: () => data ?? {},
+  };
+}
+
+// Setup 
+
+const mockRequireAuth = requireAuthenticatedUser as jest.MockedFunction<
+  typeof requireAuthenticatedUser
+>;
+const mockDb = db as jest.Mocked<typeof db>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+// Testes
+
+describe("withdrawCredits", () => {
+  //Cenário 1: Saque com sucesso
+  describe("sucesso", () => {
+    it("deve subtrair o valor do saldo e retornar o novo saldo", async () => {
+      const uid = "user-123";
+      const initialBalance = 50000; // R$ 500,00
+      const withdrawAmount = 10000;  // R$ 100,00
+      const expectedBalance = 40000; // R$ 400,00
+
+      // Auth retorna usuário autenticado
+      mockRequireAuth.mockReturnValue({ uid, email: "test@test.com" } as any);
+
+      // Firestore: get() retorna doc com saldo
+      const mockGet = jest.fn().mockResolvedValue(
+        makeDocSnap(true, { balanceCents: initialBalance })
+      );
+      const mockUpdate = jest.fn();
+      const mockSet = jest.fn();
+      const mockTxGet = jest.fn().mockResolvedValue(
+        makeDocSnap(true, { balanceCents: initialBalance })
+      );
+
+      // collection("users").doc(uid).get()
+      mockDb.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue({
+          get: mockGet,
+        }),
+      } as any);
+
+      // runTransaction executa o callback passando o objeto de transação
+      mockDb.runTransaction.mockImplementation(async (callback: any) => {
+        const txDocRef = {
+          get: mockTxGet,
+          update: mockUpdate,
+          set: mockSet,
+        };
+        // Simula transaction.get, transaction.update, transaction.set
+        const tx = {
+          get: jest.fn().mockResolvedValue(
+            makeDocSnap(true, { balanceCents: initialBalance })
+          ),
+          update: mockUpdate,
+          set: mockSet,
+        };
+        return callback(tx);
+      });
+
+      const result = await callWithdraw(uid, { amount: withdrawAmount });
+
+      expect(result).toEqual({
+        data: {
+          uid,
+          balanceCents: expectedBalance,
+        },
+      });
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.anything(), // userRef
+        { balanceCents: expectedBalance }
+      );
+    });
+
+    it("deve registrar a transação no histórico de transactions", async () => {
+      const uid = "user-456";
+      const initialBalance = 20000;
+      const withdrawAmount = 5000;
+      const mockSet = jest.fn();
+      const mockUpdate = jest.fn();
+
+      mockRequireAuth.mockReturnValue({ uid, email: "test@test.com" } as any);
+
+      mockDb.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue({ get: jest.fn() }),
+      } as any);
+
+      mockDb.runTransaction.mockImplementation(async (callback: any) => {
+        const tx = {
+          get: jest.fn().mockResolvedValue(
+            makeDocSnap(true, { balanceCents: initialBalance })
+          ),
+          update: mockUpdate,
+          set: mockSet,
+        };
+        return callback(tx);
+      });
+
+      await callWithdraw(uid, { amount: withdrawAmount });
+
+      // Verifica que uma transação do tipo "withdrawal" foi registrada
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          userId: uid,
+          type: "withdrawal",
+          totalCents: withdrawAmount,
+        })
+      );
+    });
+  });
+
+  // Cenário 2: Saldo insuficiente
+  describe("saldo insuficiente", () => {
+    it("deve lançar failed-precondition quando saldo < valor solicitado", async () => {
+      const uid = "user-broke";
+      const initialBalance = 500;   // R$ 5,00
+      const withdrawAmount = 1000;  // R$ 10,00 — mais do que tem
+
+      mockRequireAuth.mockReturnValue({ uid, email: "broke@test.com" } as any);
+
+      mockDb.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue({
+          get: jest.fn().mockResolvedValue(
+            makeDocSnap(true, { balanceCents: initialBalance })
+          ),
+        }),
+      } as any);
+
+      // runTransaction detecta saldo insuficiente e relança o erro
+      mockDb.runTransaction.mockImplementation(async (callback: any) => {
+        const tx = {
+          get: jest.fn().mockResolvedValue(
+            makeDocSnap(true, { balanceCents: initialBalance })
+          ),
+          update: jest.fn(),
+          set: jest.fn(),
+        };
+        return callback(tx);
+      });
+
+      await expect(callWithdraw(uid, { amount: withdrawAmount })).rejects.toMatchObject({
+        code: "failed-precondition",
+        message: expect.stringContaining("Saldo insuficiente"),
+      });
+    });
+
+    it("deve lançar failed-precondition quando saldo é exatamente zero", async () => {
+      const uid = "user-zero";
+
+      mockRequireAuth.mockReturnValue({ uid, email: "zero@test.com" } as any);
+
+      mockDb.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue({
+          get: jest.fn().mockResolvedValue(
+            makeDocSnap(true, { balanceCents: 0 })
+          ),
+        }),
+      } as any);
+
+      mockDb.runTransaction.mockImplementation(async (callback: any) => {
+        const tx = {
+          get: jest.fn().mockResolvedValue(makeDocSnap(true, { balanceCents: 0 })),
+          update: jest.fn(),
+          set: jest.fn(),
+        };
+        return callback(tx);
+      });
+
+      await expect(callWithdraw(uid, { amount: 100 })).rejects.toMatchObject({
+        code: "failed-precondition",
+      });
+    });
+  });
+
+  // Cenário 3: Validação de entrada
+  describe("validação de amount", () => {
+    beforeEach(() => {
+      mockRequireAuth.mockReturnValue({ uid: "u1", email: "v@test.com" } as any);
+    });
+
+    it("deve lançar invalid-argument para amount zero", async () => {
+      await expect(callWithdraw("u1", { amount: 0 })).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+
+    it("deve lançar invalid-argument para amount negativo", async () => {
+      await expect(callWithdraw("u1", { amount: -100 })).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+
+    it("deve lançar invalid-argument para amount decimal (não-inteiro)", async () => {
+      await expect(callWithdraw("u1", { amount: 99.9 })).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+
+    it("deve lançar invalid-argument quando amount não é informado", async () => {
+      await expect(callWithdraw("u1", {})).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+
+    it("deve lançar invalid-argument para amount string", async () => {
+      await expect(callWithdraw("u1", { amount: "100" })).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+  });
+
+  // Cenário 4: Usuário não autenticado 
+  describe("autenticação", () => {
+    it("deve lançar unauthenticated quando não há usuário logado", async () => {
+      mockRequireAuth.mockImplementation(() => {
+        const { HttpsError } = require("firebase-functions/https");
+        throw new HttpsError("unauthenticated", "Usuário não autenticado.");
+      });
+
+      await expect(callWithdraw(null, { amount: 1000 })).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+  });
+
+  // Cenário 5: Usuário não existe no Firestore 
+  describe("usuário não encontrado", () => {
+    it("deve lançar not-found quando doc não existe", async () => {
+      const uid = "ghost-user";
+
+      mockRequireAuth.mockReturnValue({ uid, email: "ghost@test.com" } as any);
+
+      mockDb.collection.mockReturnValue({
+        doc: jest.fn().mockReturnValue({
+          get: jest.fn().mockResolvedValue(makeDocSnap(false)),
+        }),
+      } as any);
+
+      await expect(callWithdraw(uid, { amount: 1000 })).rejects.toMatchObject({
+        code: "not-found",
+        message: expect.stringContaining("Usuário não encontrado"),
+      });
+    });
+  });
+});
