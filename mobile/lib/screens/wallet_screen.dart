@@ -868,59 +868,35 @@ class _WalletScreenState extends State<WalletScreen> {
         .toList();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     final minValue = values.reduce((a, b) => a < b ? a : b);
-    final range = maxValue - minValue;
 
     return Column(
       children: [
+        // Min/Max referência
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Min: R\$ ${(minValue / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text('Max: R\$ ${(maxValue / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Gráfico de linhas
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(_chartPoints.length, (i) {
-              final value = values[i];
-              final proportion = range > 0
-                  ? (value - minValue) / range
-                  : 1.0;
-              final barHeight = 10.0 + (proportion * 80.0);
-              final isLast = i == _chartPoints.length - 1;
-
-              return Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: 22,
-                        height: barHeight,
-                        decoration: BoxDecoration(
-                          color: isLast
-                              ? const Color(0xFF2E7D32)
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _LineChartPainter(values: values, color: const Color(0xFF2E7D32)),
           ),
         ),
         const SizedBox(height: 8),
+        // Labels
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: _chartPoints.map((p) {
-            final label = p['label'] as String? ?? '';
-            return Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(fontSize: 9, color: Colors.grey),
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            );
-          }).toList(),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_chartPoints.isNotEmpty)
+              Text(_chartPoints.first['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+            if (_chartPoints.length > 1)
+              Text(_chartPoints.last['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          ],
         ),
       ],
     );
@@ -1190,4 +1166,71 @@ class _WalletScreenState extends State<WalletScreen> {
       ),
     );
   }
+}
+
+class _LineChartPainter extends CustomPainter {
+  final List<double> values;
+  final Color color;
+
+  _LineChartPainter({required this.values, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final range = maxVal - minVal;
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final fillPath = Path();
+
+    for (int i = 0; i < values.length; i++) {
+      final x = (i / (values.length - 1)) * size.width;
+      final proportion = range > 0 ? (values[i] - minVal) / range : 0.5;
+      final y = size.height - (proportion * size.height * 0.85) - (size.height * 0.05);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+
+      // Ponto no último valor
+      if (i == values.length - 1) {
+        canvas.drawCircle(Offset(x, y), 4, dotPaint);
+      }
+    }
+
+    // Preenche área abaixo da linha
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+    canvas.drawPath(fillPath, fillPaint);
+
+    // Desenha a linha
+    canvas.drawPath(path, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

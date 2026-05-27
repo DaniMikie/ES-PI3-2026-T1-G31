@@ -52,6 +52,18 @@ export const createUser = onCall(async (request) => {
     );
   }
 
+  // 4.2 Verifica se telefone já está cadastrado por outro usuário
+  const phoneCheck = await db.collection("users")
+    .where("phone", "==", phone)
+    .limit(1)
+    .get();
+  if (!phoneCheck.empty) {
+    throw new HttpsError(
+      "already-exists",
+      "Este telefone ja esta cadastrado."
+    );
+  }
+
   // 5. Monta o documento do usuário
   const userDoc: UserDocument = {
     name,

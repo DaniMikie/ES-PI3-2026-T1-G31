@@ -1056,6 +1056,9 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final priceCents = _startup!['currentTokenPriceCents'] is num
         ? (_startup!['currentTokenPriceCents'] as num).toInt()
         : 0;
+    final tokensAvailable = _startup!['tokensAvailable'] is num
+        ? (_startup!['tokensAvailable'] as num).toInt()
+        : totalTokens;
     final isInvestor = _startup!['access']?['isInvestor'] == true;
     final rawUserTokens = _startup!['access']?['tokenQuantity'];
     final userTokens = rawUserTokens is int
@@ -1092,15 +1095,22 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _tokenInfo(
-              'R\$ ${(capitalCents / 100).toStringAsFixed(0)}',
+              'R\$ ${_formatNumber((capitalCents / 100).round())}',
               'Captados',
             ),
-            _tokenInfo('$totalTokens', 'Total emitidos'),
+            _tokenInfo('${_formatNumber(tokensAvailable)}', 'Disponíveis'),
             _tokenInfo(
               'R\$ ${(priceCents / 100).toStringAsFixed(2)}',
               'Por token',
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            'Total emitidos: ${_formatNumber(totalTokens)}',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         ),
         const SizedBox(height: 24),
 
@@ -1198,6 +1208,16 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         const SizedBox(height: 32),
       ],
     );
+  }
+
+  String _formatNumber(int value) {
+    final str = value.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+    return buffer.toString();
   }
 
   Widget _tokenInfo(String value, String label) {
@@ -1459,29 +1479,97 @@ class _StartupChartState extends State<_StartupChart> {
         .toList();
     final maxVal = values.reduce((a, b) => a > b ? a : b);
     final minVal = values.reduce((a, b) => a < b ? a : b);
-    final range = maxVal - minVal;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(_points.length, (i) {
-        final proportion = range > 0 ? (values[i] - minVal) / range : 1.0;
-        final h = 10.0 + (proportion * 60.0);
-        final isLast = i == _points.length - 1;
-        return Flexible(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Container(
-              width: 18,
-              height: h,
-              decoration: BoxDecoration(
-                color: isLast ? const Color(0xFF2E7D32) : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('R\$ ${(minVal / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+            Text('R\$ ${(maxVal / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Expanded(
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _StartupLineChartPainter(values: values, color: const Color(0xFF2E7D32)),
           ),
-        );
-      }),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_points.isNotEmpty)
+              Text(_points.first['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+            if (_points.length > 1)
+              Text(_points.last['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          ],
+        ),
+      ],
     );
   }
+}
+
+class _StartupLineChartPainter extends CustomPainter {
+  final List<double> values;
+  final Color color;
+
+  _StartupLineChartPainter({required this.values, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final range = maxVal - minVal;
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final fillPath = Path();
+
+    for (int i = 0; i < values.length; i++) {
+      final x = (i / (values.length - 1)) * size.width;
+      final proportion = range > 0 ? (values[i] - minVal) / range : 0.5;
+      final y = size.height - (proportion * size.height * 0.85) - (size.height * 0.05);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+
+      if (i == values.length - 1) {
+        canvas.drawCircle(Offset(x, y), 4, dotPaint);
+      }
+    }
+
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -35,19 +35,19 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
     super.dispose();
   }
 
-  void _onValorChanged(String value) {
-    final raw = value.replaceAll(',', '.');
-    final valorInvestido = double.tryParse(raw) ?? 0.0;
+  void _onQuantidadeChanged(String value) {
     setState(() {
-      _quantidadeTokens = widget.valorPorToken > 0 ? (valorInvestido / widget.valorPorToken).floor() : 0;
+      _quantidadeTokens = int.tryParse(value) ?? 0;
     });
   }
+
+  double get _valorTotal => _quantidadeTokens * widget.valorPorToken;
 
   void _avancar() {
     if (_formKey.currentState!.validate()) {
       if (_quantidadeTokens <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Valor insuficiente para comprar tokens'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Informe a quantidade de tokens'), backgroundColor: Colors.red),
         );
         return;
       }
@@ -217,31 +217,32 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                         ],
                       ),
                       const SizedBox(height: 28),
-                      const Text('Aplicar investimento', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      const Text('Comprar tokens', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      const SizedBox(height: 8),
+                      Text('Valor por token: R\$ ${widget.valorPorToken.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
                       const SizedBox(height: 24),
-                      const Text('Quanto gostaria de investir?', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      const Text('Quantos tokens deseja comprar?', style: TextStyle(fontSize: 14, color: Colors.grey)),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _valorController,
-                        onChanged: _onValorChanged,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                        onChanged: _onQuantidadeChanged,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         decoration: InputDecoration(
-                          prefixText: 'R\$  ',
-                          hintText: '0,00',
+                          suffixText: 'Tokens',
+                          hintText: '10',
                           enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade400)),
                           focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Informe o valor';
-                          final raw = value.replaceAll(',', '.');
-                          final parsed = double.tryParse(raw);
-                          if (parsed == null || parsed <= 0) return 'Valor inválido';
+                          if (value == null || value.isEmpty) return 'Informe a quantidade';
+                          final parsed = int.tryParse(value);
+                          if (parsed == null || parsed <= 0) return 'Quantidade inválida';
                           return null;
                         },
                       ),
                       const SizedBox(height: 32),
-                      const Text('Quantidade de tokens obtidos com o valor', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      const Text('Valor total em reais', style: TextStyle(fontSize: 14, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -249,8 +250,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(_quantidadeTokens.toString(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                            const Text('Tokens', style: TextStyle(fontSize: 15, color: Colors.grey)),
+                            Text('R\$ ${_valorTotal.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
                           ],
                         ),
                       ),

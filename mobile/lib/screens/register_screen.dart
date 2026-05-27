@@ -26,6 +26,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _viewPassword = false;
   bool _viewConfirmPassword = false;
+  String? _formError;
+  String? _cpfError;
+  String? _phoneError;
+  String? _emailError;
 
   final _cpfMask = MaskTextInputFormatter(
     mask: '###.###.###-##',
@@ -48,6 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _register() async {
+    setState(() { _formError = null; _cpfError = null; _phoneError = null; _emailError = null; });
     if (_formKey.currentState!.validate()) {
       try {
         final credential =
@@ -75,28 +80,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Navigator.pop(context);
         }
       } on FirebaseAuthException catch (e) {
-        String message = 'Erro ao criar conta';
-        if (e.code == 'email-already-in-use') {
-          message = 'Este e-mail já está cadastrado';
-        } else if (e.code == 'weak-password') {
-          message = 'A senha deve ter pelo menos 6 caracteres';
-        } else if (e.code == 'invalid-email') {
-          message = 'E-mail inválido';
-        }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          if (e.code == 'email-already-in-use') {
+            setState(() => _emailError = 'Este e-mail já está cadastrado');
+          } else if (e.code == 'weak-password') {
+            setState(() => _formError = 'A senha deve ter pelo menos 6 caracteres');
+          } else if (e.code == 'invalid-email') {
+            setState(() => _emailError = 'E-mail inválido');
+          } else {
+            setState(() => _formError = 'Erro ao criar conta');
+          }
+          _formKey.currentState!.validate();
         }
       } catch (e) {
         if (mounted) {
           String errorMsg = 'Erro ao salvar dados do usuário';
           if (e is FirebaseFunctionsException) {
             errorMsg = e.message ?? errorMsg;
+            if (errorMsg.toLowerCase().contains('cpf')) {
+              setState(() => _cpfError = 'Este CPF já está cadastrado');
+            } else if (errorMsg.toLowerCase().contains('telefone') || errorMsg.toLowerCase().contains('phone')) {
+              setState(() => _phoneError = 'Este telefone já está cadastrado');
+            } else {
+              setState(() => _formError = errorMsg);
+            }
+          } else {
+            setState(() => _formError = errorMsg);
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMsg)),
-          );
+          _formKey.currentState!.validate();
         }
       }
     }
@@ -136,6 +147,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     '(*)Preencha os campos obrigatórios',
                     style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32)),
                   ),
+                  if (_formError != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(_formError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    ),
+                  ],
                   const SizedBox(height: 32),
 
                   // Campo Nome
@@ -168,6 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu e-mail';
                       if (!value.contains('@')) return 'E-mail inválido';
+                      if (_emailError != null) return _emailError;
                       return null;
                     },
                   ),
@@ -188,6 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu CPF';
                       if (_cpfMask.getUnmaskedText().length != 11) return 'CPF incompleto';
+                      if (_cpfError != null) return _cpfError;
                       return null;
                     },
                   ),
@@ -208,6 +234,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu telefone';
                       if (_phoneMask.getUnmaskedText().length != 11) return 'Telefone incompleto';
+                      if (_phoneError != null) return _phoneError;
                       return null;
                     },
                   ),

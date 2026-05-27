@@ -16,7 +16,7 @@ import {
   listPrivateQuestions,
   userIsInvestor,
 } from "../repositories/startupRepository";
-import {getTokenPosition} from "../../exchange/repositories/exchangeRepository";
+import {getTokenPosition, getTotalTokensSold} from "../../exchange/repositories/exchangeRepository";
 
 export const getStartupDetails = onCall(async (request) => {
   // Verifica login e pega dados do usuário
@@ -43,11 +43,14 @@ export const getStartupDetails = onCall(async (request) => {
   const questions = await listPublicQuestions(startupId);
   const privateQuestions = isInvestor ? await listPrivateQuestions(startupId, user.uid) : [];
   const tokenPosition = await getTokenPosition(startupId, user.uid);
+  const totalTokensSold = await getTotalTokensSold(startupId);
 
   return {
     data: {
       id: startupId,
       ...startup,
+      totalTokensSold,
+      tokensAvailable: startup.totalTokensIssued - totalTokensSold,
       createdAt: startup.createdAt?.toDate().toISOString() ?? null,
       updatedAt: startup.updatedAt?.toDate().toISOString() ?? null,
       publicQuestions: questions,
