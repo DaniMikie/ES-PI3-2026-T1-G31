@@ -508,20 +508,26 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               ),
               const SizedBox(height: 20),
               // Tabs
-              Row(
-                children: [
-                  _buildTab('A Startup', 0),
-                  const SizedBox(width: 12),
-                  _buildTab('Os tokens', 1),
-                  const SizedBox(width: 12),
-                  _buildTab('Novidades', 2),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildTab('A Startup', 0),
+                    const SizedBox(width: 12),
+                    _buildTab('Os tokens', 1),
+                    const SizedBox(width: 12),
+                    _buildTab('Perguntas', 2),
+                    const SizedBox(width: 12),
+                    _buildTab('Novidades', 3),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               // Content
               if (_tabIndex == 0) _buildStartupTab(),
               if (_tabIndex == 1) _buildTokensTab(),
-              if (_tabIndex == 2) _buildUpdatesTab(),
+              if (_tabIndex == 2) _buildQuestionsTab(),
+              if (_tabIndex == 3) _buildUpdatesTab(),
             ],
           ),
         ),
@@ -567,18 +573,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     final externalMembers = List<Map<String, dynamic>>.from(
       (_startup!['externalMembers'] as List?)?.map(
             (m) => Map<String, dynamic>.from(m as Map),
-          ) ??
-          [],
-    );
-    final questions = List<Map<String, dynamic>>.from(
-      (_startup!['publicQuestions'] as List?)?.map(
-            (q) => Map<String, dynamic>.from(q as Map),
-          ) ??
-          [],
-    );
-    final privateQuestions = List<Map<String, dynamic>>.from(
-      (_startup!['privateQuestions'] as List?)?.map(
-            (q) => Map<String, dynamic>.from(q as Map),
           ) ??
           [],
     );
@@ -743,71 +737,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           const SizedBox(height: 24),
         ],
 
-        // Perguntas e respostas
-        const Text(
-          'Perguntas e respostas',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2E7D32),
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (questions.isEmpty)
-          const Text(
-            'Nenhuma pergunta ainda',
-            style: TextStyle(color: Colors.grey),
-          )
-        else
-          ...questions.map(
-            (q) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    q['text'] as String? ?? '',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (q['answer'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      q['answer'] as String,
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        const SizedBox(height: 12),
-        // Botao de pergunta publica (qualquer usuario)
-        GestureDetector(
-          onTap: () => _sendQuestion(visibility: 'publica'),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF2E7D32)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'Fazer uma pergunta publica',
-              style: TextStyle(
-                color: Color(0xFF2E7D32),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
         const SizedBox(height: 24),
 
         // Sócios ativos
@@ -906,108 +835,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                     ),
                   ),
                   child: const Text('Ir para os tokens'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Perguntas privadas
-          const Text(
-            'Perguntas e respostas privadas',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2E7D32),
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (privateQuestions.isEmpty)
-            const Text(
-              'Nenhuma pergunta privada ainda',
-              style: TextStyle(color: Colors.grey),
-            )
-          else
-            ...privateQuestions.map(
-              (q) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      q['text'] as String? ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (q['answer'] != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        q['answer'] as String,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF2E7D32),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Aguardando resposta...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          // Campo de pergunta privada
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Fazer uma pergunta privada',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => _sendQuestion(visibility: 'privada'),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Digite aqui sua pergunta',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -1248,6 +1075,103 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildQuestionsTab() {
+    final questions = List<Map<String, dynamic>>.from(
+      (_startup!['publicQuestions'] as List?)?.map(
+            (q) => Map<String, dynamic>.from(q as Map),
+          ) ?? [],
+    );
+    final privateQuestions = List<Map<String, dynamic>>.from(
+      (_startup!['privateQuestions'] as List?)?.map(
+            (q) => Map<String, dynamic>.from(q as Map),
+          ) ?? [],
+    );
+    final isInvestor = _startup!['access']?['isInvestor'] == true;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Perguntas públicas
+        const Text('Perguntas publicas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const SizedBox(height: 12),
+        if (questions.isEmpty)
+          const Text('Nenhuma pergunta ainda', style: TextStyle(color: Colors.grey))
+        else
+          ...questions.map(
+            (q) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(q['text'] as String? ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  if (q['answer'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(q['answer'] as String, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
+        // Botão pergunta pública
+        GestureDetector(
+          onTap: () => _sendQuestion(visibility: 'publica'),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(border: Border.all(color: const Color(0xFF2E7D32)), borderRadius: BorderRadius.circular(12)),
+            child: const Text('Fazer uma pergunta publica', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+          ),
+        ),
+
+        // Perguntas privadas (só investidores)
+        if (isInvestor) ...[
+          const SizedBox(height: 32),
+          const Text('Perguntas privadas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+          const SizedBox(height: 4),
+          const Text('Visíveis apenas para voce e a startup', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 12),
+          if (privateQuestions.isEmpty)
+            const Text('Nenhuma pergunta privada ainda', style: TextStyle(color: Colors.grey))
+          else
+            ...privateQuestions.map(
+              (q) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(q['text'] as String? ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    if (q['answer'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text(q['answer'] as String, style: const TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontStyle: FontStyle.italic)),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      const Text('Aguardando resposta...', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => _sendQuestion(visibility: 'privada'),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(16)),
+              child: const Text('Fazer uma pergunta privada', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+        const SizedBox(height: 32),
       ],
     );
   }
