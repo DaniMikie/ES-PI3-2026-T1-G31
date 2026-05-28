@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'investment_screen.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
@@ -357,6 +358,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     );
   }
 
+  String? _extractYoutubeId(String url) {
+    return YoutubePlayer.convertUrlToId(url);
+  }
+
   List<String> _videoLinks() {
     final rawLinks = _startup?['demoVideos'];
 
@@ -610,27 +615,36 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
           const SizedBox(height: 12),
           ...videoLinks.asMap().entries.map(
-            (entry) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _openVideo(entry.value),
-                icon: const Icon(Icons.play_circle_outline, size: 20),
-                label: Text('Abrir vídeo ${entry.key + 1}'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF2E7D32),
-                  side: const BorderSide(color: Color(0xFF2E7D32)),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
+            (entry) {
+              final videoId = _extractYoutubeId(entry.value);
+              if (videoId != null) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  alignment: Alignment.centerLeft,
+                  clipBehavior: Clip.hardEdge,
+                  child: _YoutubeVideoPlayer(videoId: videoId),
+                );
+              }
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _openVideo(entry.value),
+                  icon: const Icon(Icons.play_circle_outline, size: 20),
+                  label: Text('Abrir vídeo ${entry.key + 1}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2E7D32),
+                    side: const BorderSide(color: Color(0xFF2E7D32)),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    alignment: Alignment.centerLeft,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           const SizedBox(height: 14),
         ],
@@ -1512,6 +1526,46 @@ class _StartupChartState extends State<_StartupChart> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _YoutubeVideoPlayer extends StatefulWidget {
+  final String videoId;
+  const _YoutubeVideoPlayer({required this.videoId});
+
+  @override
+  State<_YoutubeVideoPlayer> createState() => _YoutubeVideoPlayerState();
+}
+
+class _YoutubeVideoPlayerState extends State<_YoutubeVideoPlayer> {
+  late YoutubePlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+        showLiveFullscreenButton: false,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return YoutubePlayer(
+      controller: _controller,
+      showVideoProgressIndicator: true,
+      progressIndicatorColor: const Color(0xFF2E7D32),
     );
   }
 }
