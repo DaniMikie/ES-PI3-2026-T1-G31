@@ -1,4 +1,4 @@
-// REMOVER DEPOIS
+// TELA NÃO UTILIZADA
 
 /**
  * Tela de Catálogo de Startups — MesclaInvest

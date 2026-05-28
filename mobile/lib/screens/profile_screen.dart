@@ -396,7 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Switch(value: _mfaAtivo, onChanged: _onMfaToggle, activeColor: Colors.white, activeTrackColor: const Color(0xFF2E7D32), inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade400),
                         const SizedBox(width: 8),
-                        const Text('Ativar Autenticacao Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
+                        const Text('Ativar Autenticação Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
                       ],
                     ),
                     const SizedBox(height: 32),

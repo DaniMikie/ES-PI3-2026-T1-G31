@@ -1,10 +1,12 @@
 // Autora: Ana Luisa Maso Mafra - RA: 25007997
 // Integracao: Daniela Mikie Kikuchi Goncalves - RA: 25003068
+// Modificao: Felipe Nasser Coelho Moussa - RA: 25004922
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'buy_screen.dart';
 import 'sell_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // Enum para os três modos do balcão
 enum MarketMode { buy, sell, myOffers }
@@ -79,6 +81,52 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
+  String get _userDisplayName {
+    final displayName = FirebaseAuth.instance.currentUser?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+
+    return 'Usuário';
+  }
+  String get _userInitials {
+    final parts = _userDisplayName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+
+    return '${parts.first.characters.first}${parts.last.characters.first}'
+        .toUpperCase();
+  }
+
+  Widget _buildUserIdentity() {
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 17,
+          backgroundColor: const Color(0xFF2E7D32),
+          backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+          child: hasPhoto
+              ? null
+              : Text(
+            _userInitials,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _onModeChanged(MarketMode mode) {
     setState(() => _mode = mode);
     if (mode == MarketMode.myOffers) {
@@ -88,10 +136,10 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Color _stageColor(String stage) {
     switch (stage) {
-      case 'nova': return Colors.green.shade200;
-      case 'em_operacao': return Colors.blue.shade200;
-      case 'em_expansao': return Colors.red.shade200;
-      default: return Colors.grey.shade200;
+      case 'nova': return const Color(0xFF2E7D32);
+      case 'em_operacao': return const Color(0xFF1565C0);
+      case 'em_expansao': return Colors.orange.shade700;
+      default: return Colors.grey;
     }
   }
 
@@ -124,36 +172,63 @@ class _MarketScreenState extends State<MarketScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: Image.asset('assets/images/logo.png', width: 180)),
-              const SizedBox(height: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Cabeçalho ──────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Center(
+                    child: Image.asset('assets/images/logo.png', width: 180),
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: _buildUserIdentity(),
+                  ),
+                ],
+              ),
+            ),
 
-              // Título dinâmico
-              Text(
+            const SizedBox(height: 20),
+
+            // Título
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
                 _mode == MarketMode.buy
                     ? 'Comprar tokens'
                     : _mode == MarketMode.sell
-                        ? 'Anunciar tokens'
-                        : 'Meus anúncios',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                    ? 'Anunciar tokens'
+                    : 'Meus anúncios',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E7D32),
+                ),
               ),
-              const SizedBox(height: 5),
-              Text(
+            ),
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
                 _mode == MarketMode.buy
                     ? 'Escolha uma startup para ver as ofertas disponíveis'
                     : _mode == MarketMode.sell
-                        ? 'Selecione a startup para criar seu anúncio de venda'
-                        : 'Gerencie e cancele seus anúncios ativos',
+                    ? 'Selecione a startup para criar seu anúncio de venda'
+                    : 'Gerencie e cancele seus anúncios ativos',
                 style: const TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-              // Abas
-              Row(
+            // Abas
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
                 children: [
                   _buildTab('Comprar', MarketMode.buy),
                   const SizedBox(width: 8),
@@ -162,34 +237,54 @@ class _MarketScreenState extends State<MarketScreen> {
                   _buildTab('Meus anúncios', MarketMode.myOffers),
                 ],
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-              // Barra de busca (oculta em "Meus anúncios")
-              if (_mode != MarketMode.myOffers) ...[
-                TextField(
+            // Barra de busca (oculta em "Meus anúncios")
+            if (_mode != MarketMode.myOffers) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: TextFormField(
                   onChanged: (v) => setState(() => _searchQuery = v),
                   decoration: InputDecoration(
                     hintText: 'Buscar startups',
-                    suffixIcon: const Icon(Icons.search),
+                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                    suffixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
                   _mode == MarketMode.buy
                       ? 'Toque na startup para ver as ofertas de venda'
                       : 'Toque na startup para criar seu anúncio',
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-                const SizedBox(height: 10),
-              ],
-
-              // Conteúdo principal───────────────────────────────────────
-              Expanded(child: _buildContent()),
+              ),
+              const SizedBox(height: 10),
             ],
-          ),
+
+            // Conteúdo principal
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _buildContent(),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -197,17 +292,16 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _buildTab(String label, MarketMode mode) {
     final isActive = _mode == mode;
-    // "Meus anúncios" ocupa mais espaço
     final flex = mode == MarketMode.myOffers ? 3 : 2;
     return Expanded(
       flex: flex,
       child: GestureDetector(
         onTap: () => _onModeChanged(mode),
         child: Container(
-          height: 45,
+          height: 40,
           decoration: BoxDecoration(
             color: isActive ? Colors.black : Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(32),
           ),
           child: Center(
             child: Text(
@@ -215,7 +309,7 @@ class _MarketScreenState extends State<MarketScreen> {
               style: TextStyle(
                 color: isActive ? Colors.white : Colors.black,
                 fontSize: 12,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -226,7 +320,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _buildContent() {
     if (_mode == MarketMode.myOffers) return _buildMyOffers();
-    if (_loading) return const Center(child: CircularProgressIndicator(color: Colors.green));
+    if (_loading) return const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
 
     final lista = _filteredStartups;
     if (lista.isEmpty) {
@@ -241,7 +335,7 @@ class _MarketScreenState extends State<MarketScreen> {
     }
 
     return RefreshIndicator(
-      color: Colors.green,
+      color: const Color(0xFF2E7D32),
       onRefresh: _loadData,
       child: ListView.separated(
         itemCount: lista.length,
@@ -262,36 +356,36 @@ class _MarketScreenState extends State<MarketScreen> {
                 MaterialPageRoute(
                   builder: (_) => _mode == MarketMode.buy
                       ? BuyScreen(
-                          startupId: s['id'] as String,
-                          startupName: name,
-                          tokenPrice: priceCents / 100,
-                          totalTokens: totalTokens,
-                          stage: stage,
-                          tags: tags,
-                        )
+                    startupId: s['id'] as String,
+                    startupName: name,
+                    tokenPrice: priceCents / 100,
+                    totalTokens: totalTokens,
+                    stage: stage,
+                    tags: tags,
+                  )
                       : SellScreen(
-                          startupId: s['id'] as String,
-                          startupName: name,
-                          tokenPrice: priceCents / 100,
-                          totalTokens: totalTokens,
-                          stage: stage,
-                          tags: tags,
-                        ),
+                    startupId: s['id'] as String,
+                    startupName: name,
+                    tokenPrice: priceCents / 100,
+                    totalTokens: totalTokens,
+                    stage: stage,
+                    tags: tags,
+                  ),
                 ),
               ).then((_) => _loadData()); // Recarrega ao voltar
             },
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 55, height: 55,
-                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(14)),
-                    child: Center(child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(10)),
+                    child: Center(child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -301,14 +395,21 @@ class _MarketScreenState extends State<MarketScreen> {
                         Row(children: [
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                               Text(tags.isNotEmpty ? tags.first : '', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                             ]),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(color: _stageColor(stage), borderRadius: BorderRadius.circular(20)),
-                            child: Text(_stageLabel(stage), style: const TextStyle(fontSize: 12)),
+                            child: Text(
+                              _stageLabel(stage),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ]),
                         const SizedBox(height: 12),
@@ -320,13 +421,13 @@ class _MarketScreenState extends State<MarketScreen> {
                                   ? 'Ver ofertas disponíveis'
                                   : '$totalTokens tokens disponíveis',
                               style: TextStyle(
-                                color: _mode == MarketMode.buy ? Colors.green : Colors.grey,
+                                color: _mode == MarketMode.buy ? const Color(0xFF2E7D32) : Colors.grey,
                                 fontSize: 13,
                                 fontWeight: _mode == MarketMode.buy ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
                             if (_mode == MarketMode.buy)
-                              Icon(Icons.arrow_forward_ios, size: 12, color: Colors.green.shade400),
+                              Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withOpacity(0.7)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -349,7 +450,7 @@ class _MarketScreenState extends State<MarketScreen> {
   // Aba "Meus anúncios"─────────────────────────────────────────────────
   Widget _buildMyOffers() {
     if (_loadingMyOffers) {
-      return const Center(child: CircularProgressIndicator(color: Colors.green));
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
     }
 
     if (_myOffers.isEmpty) {
@@ -371,8 +472,8 @@ class _MarketScreenState extends State<MarketScreen> {
             const SizedBox(height: 24),
             TextButton.icon(
               onPressed: _loadMyOffers,
-              icon: const Icon(Icons.refresh, color: Colors.green),
-              label: const Text('Atualizar', style: TextStyle(color: Colors.green)),
+              icon: const Icon(Icons.refresh, color: Color(0xFF2E7D32)),
+              label: const Text('Atualizar', style: TextStyle(color: Color(0xFF2E7D32))),
             ),
           ],
         ),
@@ -380,7 +481,7 @@ class _MarketScreenState extends State<MarketScreen> {
     }
 
     return RefreshIndicator(
-      color: Colors.green,
+      color: const Color(0xFF2E7D32),
       onRefresh: _loadMyOffers,
       child: ListView.separated(
         itemCount: _myOffers.length,
@@ -420,7 +521,7 @@ class _MarketScreenState extends State<MarketScreen> {
               children: [
                 Container(
                   width: 48, height: 48,
-                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(12)),
                   child: Center(child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 ),
                 const SizedBox(width: 14),
@@ -436,7 +537,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       ),
                       Text(
                         'Total: ${_formatMoney((priceCents * qty) / 100)}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                       ),
                       if (createdLabel.isNotEmpty)
                         Text('Criado em $createdLabel', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),

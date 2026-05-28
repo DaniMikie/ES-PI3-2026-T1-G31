@@ -2,6 +2,7 @@
  * Tela de Detalhes da Startup — MesclaInvest
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  * Alterações: Rafaela Jacobsen | RA: 25004280
+ * Ajustes: Felipe Nasser Coelho Moussa | RA: 25004922
  */
 
 import 'package:flutter/material.dart';
@@ -299,11 +300,15 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         title: Text(
           visibility == 'privada' ? 'Pergunta privada' : 'Fazer uma pergunta',
         ),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Digite aqui sua pergunta',
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: controller,
+            minLines: 1,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Digite aqui sua pergunta',
+            ),
           ),
         ),
         actions: [
