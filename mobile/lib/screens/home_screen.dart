@@ -218,7 +218,29 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
+
+            // ── Subtítulo e título Destaques ───────────────────
+            const Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Destaques',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E7D32),
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Clique na startup para saber mais',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // ── Campo de busca ─────────────────────────────────
             Padding(
@@ -277,28 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── Subtítulo e título Destaques ───────────────────
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'Clique na startup para saber mais',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 4, 24, 0),
-              child: Text(
-                'Destaques',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D32),
-                ),
               ),
             ),
 
