@@ -10,14 +10,29 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 
 ## Funcionalidades Implementadas
 
-* **Autenticação de usuários** (cadastro, login, recuperação de senha)
+* **Autenticação de usuários** (cadastro, login, recuperação de senha, verificação de email)
+* **Autenticação multifator (2FA)** com TOTP via Google Authenticator (QR code)
 * **Catálogo de startups** com filtros por estágio e busca por texto
-* **Tela detalhada da startup** com sócios, capital, tokens, sumário executivo e perguntas públicas
-* **Envio de perguntas** para empreendedores (públicas e privadas para investidores)
-* **Perfil do usuário** com dados pessoais e preferência de MFA
-* **Carteira simulada** com saldo fictício e adição de crédito
-* **Compra de tokens** com validação de saldo e registro de transação
-* **Testes unitários** com Jest (TDD)
+* **Tela detalhada da startup** com abas: A Startup, Os Tokens, Perguntas, Novidades
+* **Estrutura societária** com sócios, mentores e conselheiros
+* **Vídeos demonstrativos** com player YouTube embutido
+* **Perguntas públicas e privadas** para empreendedores (privadas só para investidores)
+* **Atualizações e eventos** das startups (aba Novidades)
+* **Sumário executivo e plano de negócios**
+* **Perfil do usuário** com dados pessoais, alteração de senha e 2FA
+* **Carteira simulada** com saldo fictício, adição de crédito e saque
+* **Compra de tokens** com validação de saldo, limite de emissão e registro de transação
+* **Venda de tokens** com re-autenticação por senha
+* **Balcão de ofertas** — anunciar tokens com preço customizado, listar e aceitar ofertas de outros investidores
+* **Meus anúncios** — visualizar ofertas criadas, status e opção de cancelar
+* **Lógica de valorização** — preço do token recalculado automaticamente (média ponderada)
+* **Dashboard com gráfico de linhas** — variação de preço por período (dia/semana/mês/6M/YTD)
+* **Variação percentual** por investimento (preço de compra vs preço atual)
+* **Tokens disponíveis** — controle de emissão (total emitido - vendidos)
+* **Capital captado** — atualizado automaticamente a cada compra
+* **Histórico de transações** paginado com "Ver mais"
+* **Validação de CPF e telefone** duplicado no cadastro
+* **Testes unitários** com Jest (34 testes)
 
 ---
 
@@ -25,15 +40,19 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 
 ### Frontend (Mobile)
 * **Flutter** / **Dart**
+* **youtube_player_flutter** (player de vídeo)
+* **qr_flutter** (QR code para 2FA)
 
 ### Backend
 * **Firebase Functions** (Node.js / TypeScript)
+* **otplib** (geração e validação TOTP)
 
 ### Banco de Dados
 * **Firebase Firestore**
 
 ### Autenticação
 * **Firebase Authentication** (Email/Password)
+* **TOTP** (Google Authenticator) para 2FA
 
 ### Ferramentas
 * **Git** / **GitHub**
@@ -43,92 +62,9 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 
 ---
 
-## Estrutura do Projeto
-
-```
-PI3/
-├── backend/                          # Firebase Functions (TypeScript)
-│   ├── firebase.json                 # Configuração do projeto Firebase
-│   ├── .firebaserc                   # ID do projeto (mescla-invest-5ee42)
-│   ├── firestore.rules               # Regras de segurança do Firestore
-│   ├── firestore.indexes.json        # Índices do Firestore
-│   └── functions/
-│       ├── package.json              # Dependências e scripts
-│       ├── tsconfig.json             # Config TypeScript (VSCode)
-│       ├── tsconfig.build.json       # Config TypeScript (build/deploy)
-│       ├── jest.config.js            # Config dos testes
-│       └── src/
-│           ├── index.ts              # Entry point das functions
-│           ├── startups/             # Módulo de startups
-│           │   ├── index.ts          # Exportações do módulo
-│           │   ├── handlers/         # Cloud Functions (API)
-│           │   │   ├── createStartupQuestion.ts
-│           │   │   ├── createUser.ts
-│           │   │   ├── getStartupContent.ts
-│           │   │   ├── getStartupDetails.ts
-│           │   │   ├── getUserProfile.ts
-│           │   │   ├── listStartups.ts
-│           │   │   ├── seedStartupCatalog.ts
-│           │   │   └── updateMfaPreference.ts
-│           │   ├── repositories/     # Acesso ao Firestore
-│           │   │   ├── startupRepository.ts
-│           │   │   └── userRepository.ts
-│           │   ├── shared/           # Código reutilizável
-│           │   │   ├── auth.ts
-│           │   │   ├── constants.ts
-│           │   │   ├── firebase.ts
-│           │   │   └── validation.ts
-│           │   └── types/            # Tipos TypeScript
-│           │       └── index.ts
-│           ├── exchange/             # Módulo do balcão de tokens
-│           │   ├── handlers/
-│           │   │   ├── addCredits.ts
-│           │   │   ├── buyTokens.ts
-│           │   │   └── getWallet.ts
-│           │   ├── repositories/
-│           │   │   └── exchangeRepository.ts
-│           │   └── types/
-│           │       └── index.ts
-│           └── __tests__/            # Testes unitários (Jest)
-│               ├── startups/
-│               │   ├── shared/
-│               │   ├── types/
-│               │   └── repositories/
-│               └── exchange/
-│                   └── repositories/
-│
-├── mobile/                           # Aplicação Flutter
-│   ├── pubspec.yaml                  # Dependências Flutter
-│   ├── assets/images/                # Imagens (logo)
-│   └── lib/
-│       ├── main.dart                 # Entry point do app
-│       ├── firebase_options.dart     # Config Firebase (gerado)
-│       └── screens/
-│           ├── login_screen.dart
-│           ├── register_screen.dart
-│           ├── forgot_password_screen.dart
-│           ├── home_screen.dart
-│           ├── catalog_screen.dart
-│           ├── startup_details_screen.dart
-│           ├── profile_screen.dart
-│           ├── wallet_screen.dart
-│           ├── investment_screen.dart
-│           └── investment_confirm_screen.dart
-│
-├── documentos/                       # Documentação do projeto
-│   ├── escopo.md
-│   ├── aula6.md
-│   └── resumoPDF.md
-│
-├── .gitignore
-└── README.md
-```
-
----
-
 ## Arquitetura do Backend
 
-O backend segue o padrão TDD com separação de responsabilidades:
+O backend segue separação de responsabilidades em camadas:
 
 ```
 Flutter (app) → Cloud Function (handler) → Repository → Firestore
@@ -143,26 +79,47 @@ Flutter (app) → Cloud Function (handler) → Repository → Firestore
 
 ## Cloud Functions Disponíveis
 
-### Módulo Startups
+### Módulo Startups (6)
 
 | Function | Descrição |
 |----------|-----------|
 | `listStartups` | Lista startups com filtro por estágio e busca por texto |
-| `getStartupDetails` | Retorna detalhes completos de uma startup |
-| `getStartupContent` | Retorna conteúdos públicos (sumário, vídeos, sócios, perguntas) |
-| `createStartupQuestion` | Cria pergunta pública ou privada para uma startup |
-| `seedStartupCatalog` | Popula o banco com startups de demonstração |
-| `createUser` | Salva dados do usuário (nome, CPF, telefone) no Firestore |
-| `getUserProfile` | Retorna dados do perfil do usuário |
-| `updateMfaPreference` | Atualiza preferência de autenticação multifator |
+| `getStartupDetails` | Retorna detalhes completos + tokens disponíveis |
+| `getStartupContent` | Retorna conteúdos públicos |
+| `getStartupUpdates` | Retorna atualizações e eventos da startup |
+| `createStartupQuestion` | Cria pergunta pública ou privada |
+| `seedStartupCatalog` | Popula o banco com dados de demonstração |
 
-### Módulo Exchange (Balcão de Tokens)
+### Módulo Exchange (12)
 
 | Function | Descrição |
 |----------|-----------|
-| `addCredits` | Adiciona saldo fictício na carteira do usuário |
-| `getWallet` | Retorna saldo atual da carteira |
-| `buyTokens` | Compra simulada de tokens (valida saldo, debita, registra investidor) |
+| `addCredits` | Adiciona saldo fictício na carteira |
+| `getWallet` | Retorna saldo, posições e preço atual dos tokens |
+| `buyTokens` | Compra tokens (valida saldo, limite de emissão, atualiza capital) |
+| `sellTokens` | Venda direta de tokens pelo preço atual |
+| `createOffer` | Cria oferta no balcão com preço customizado |
+| `listOffers` | Lista ofertas ativas de uma startup |
+| `listMyOffers` | Lista ofertas do próprio usuário |
+| `acceptOffer` | Aceita oferta (debita comprador, credita vendedor) |
+| `cancelOffer` | Cancela oferta e devolve tokens |
+| `listTransactions` | Retorna histórico de transações |
+| `getTokenHistory` | Histórico de preço para gráfico da carteira |
+| `getStartupTokenHistory` | Histórico de preço para gráfico da startup |
+
+### Módulo Users (9)
+
+| Function | Descrição |
+|----------|-----------|
+| `createUser` | Cadastra usuário (valida CPF e telefone duplicado) |
+| `getUserProfile` | Retorna dados do perfil |
+| `updateUserProfile` | Atualiza nome e telefone |
+| `updateMfaPreference` | Atualiza preferência de MFA |
+| `withdrawCredits` | Saque de saldo com re-autenticação |
+| `enableTotp` | Gera secret TOTP e retorna QR code |
+| `verifyTotp` | Valida código TOTP (ativação e login) |
+| `disableTotp` | Desativa TOTP com confirmação por código |
+| `checkTotp` | Verifica se usuário tem TOTP ativo |
 
 ---
 
@@ -193,7 +150,7 @@ npm run test
 ```bash
 cd backend
 firebase login
-firebase deploy --only functions
+firebase deploy --only functions,firestore:indexes
 ```
 
 ### 5. Mobile — Instalar dependências
@@ -219,11 +176,14 @@ Requer emulador Android (Android Studio) ou dispositivo físico conectado via US
 * Coleção `startups` — 5 startups cadastradas (GreenPulse, MedConnect, AgroSmart, EduFlex, FinToken)
 * Subcoleção `startups/{id}/questions` — perguntas dos usuários
 * Subcoleção `startups/{id}/investors` — posição de tokens dos investidores
-* Coleção `users` — dados dos usuários (nome, CPF, telefone, saldo)
-* Subcoleção `users/{uid}/transactions` — histórico de compras e vendas
+* Subcoleção `startups/{id}/updates` — atualizações e eventos
+* Coleção `users` — dados dos usuários (nome, CPF, telefone, saldo, TOTP)
+* Subcoleção `users/{uid}/transactions` — histórico de transações
+* Coleção `offers` — ofertas do balcão de negociação
 
 ### Authentication
 * Email/Password habilitado
+* Verificação de email automática no cadastro
 
 ---
 
