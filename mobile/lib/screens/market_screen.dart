@@ -7,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'buy_screen.dart';
 import 'sell_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'login_screen.dart';
 
 // Enum para os três modos do balcão
 enum MarketMode { buy, sell, myOffers }
@@ -127,6 +128,77 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
+  // ── Menu do usuário ──────────────────────────────────────────────
+  void _showUserMenu() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_userDisplayName),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.logout, color: Color(0xFFB30B0E)),
+                title: const Text(
+                  'Sair da conta',
+                  style: TextStyle(color: Color(0xFFB30B0E)),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmExit();
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Confirmação de saída ─────────────────────────────────────────
+  void _confirmExit() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sair da conta'),
+        content: const Text('Deseja realmente sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await FirebaseAuth.instance.signOut();
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+            ),
+            child: const Text('Sair', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   void _onModeChanged(MarketMode mode) {
     setState(() => _mode = mode);
     if (mode == MarketMode.myOffers) {
@@ -187,7 +259,10 @@ class _MarketScreenState extends State<MarketScreen> {
                   ),
                   Positioned(
                     right: 0,
-                    child: _buildUserIdentity(),
+                    child: GestureDetector(
+                      onTap: _showUserMenu,
+                      child: _buildUserIdentity(),
+                    ),
                   ),
                 ],
               ),
