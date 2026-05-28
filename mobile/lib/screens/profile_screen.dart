@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'login_screen.dart';
+import 'totp_setup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -196,146 +197,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onMfaToggle(bool valor) async {
     if (valor) {
-      // Ativar MFA — pedir telefone e cadastrar segundo fator
-      _showMfaEnrollDialog();
+      // Ativar MFA — abrir tela de configuração TOTP
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TotpSetupScreen()),
+      );
+      if (result == true) {
+        setState(() => _mfaAtivo = true);
+      }
     } else {
-      // Desativar MFA — remover segundo fator
-      await _unenrollMfa();
+      // Desativar MFA — pedir código pra confirmar
+      _showDisableTotpDialog();
     }
   }
 
-  void _showMfaEnrollDialog() {
-    final phoneController = TextEditingController(text: _dadosUsuario['telefone']);
+  void _showDisableTotpDialog() {
     final codeController = TextEditingController();
-    String? verificationId;
-    int? resendToken;
-
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (dialogContext) {
         String? erro;
         bool loading = false;
-        bool codeSent = false;
-
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) => AlertDialog(
-            title: Text(codeSent ? 'Codigo de verificacao' : 'Ativar MFA'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (erro != null)
-                    Container(
-                      width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                    ),
-                  if (!codeSent) ...[
-                    const Text('Informe seu telefone para receber o codigo SMS', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Telefone (+55...)', hintText: '+5519999999999'),
-                    ),
-                  ] else ...[
-                    const Text('Digite o codigo recebido por SMS', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: codeController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Codigo SMS', hintText: '123456'),
-                    ),
-                  ],
-                ],
-              ),
+            title: const Text('Desativar 2FA'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Digite o codigo do Google Authenticator para confirmar', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 12),
+                if (erro != null)
+                  Container(
+                    width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                    child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                  ),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 20, letterSpacing: 6, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(hintText: '000000', counterText: '', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                ),
+              ],
             ),
             actions: [
-              TextButton(
-                onPressed: loading ? null : () { Navigator.pop(dialogContext); setState(() => _mfaAtivo = false); },
-                child: const Text('Cancelar'),
-              ),
+              TextButton(onPressed: loading ? null : () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
               ElevatedButton(
                 onPressed: loading ? null : () async {
+                  if (codeController.text.trim().length != 6) { setDialogState(() => erro = 'Codigo de 6 digitos'); return; }
                   setDialogState(() { loading = true; erro = null; });
-
-                  if (!codeSent) {
-                    // Enviar SMS
-                    try {
-                      final user = FirebaseAuth.instance.currentUser!;
-                      final session = await user.multiFactor.getSession();
-                      String phone = phoneController.text.trim();
-                      if (!phone.startsWith('+')) phone = '+55${phone.replaceAll(RegExp(r'[^0-9]'), '')}';
-
-                      await FirebaseAuth.instance.verifyPhoneNumber(
-                        multiFactorSession: session,
-                        phoneNumber: phone,
-                        verificationCompleted: (_) {},
-                        verificationFailed: (e) {
-                          setDialogState(() { erro = e.message ?? 'Erro ao enviar SMS'; loading = false; });
-                        },
-                        codeSent: (vId, token) {
-                          verificationId = vId;
-                          resendToken = token;
-                          setDialogState(() { codeSent = true; loading = false; });
-                        },
-                        codeAutoRetrievalTimeout: (_) {},
-                      );
-                    } catch (e) {
-                      setDialogState(() { erro = 'Erro ao iniciar verificacao: $e'; loading = false; });
-                    }
-                  } else {
-                    // Verificar codigo e cadastrar
-                    try {
-                      final credential = PhoneAuthProvider.credential(
-                        verificationId: verificationId!,
-                        smsCode: codeController.text.trim(),
-                      );
-                      final assertion = PhoneMultiFactorGenerator.getAssertion(credential);
-                      await FirebaseAuth.instance.currentUser!.multiFactor.enroll(assertion, displayName: 'Telefone');
-
-                      // Salva preferencia no backend
-                      final callable = _functions.httpsCallable('updateMfaPreference');
-                      await callable.call({'mfaAtivo': true});
-
-                      Navigator.pop(dialogContext);
-                      setState(() => _mfaAtivo = true);
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('MFA ativado com sucesso!'), backgroundColor: Color(0xFF2E7D32)));
-                    } on FirebaseAuthException catch (e) {
-                      setDialogState(() { erro = e.code == 'invalid-verification-code' ? 'Codigo incorreto' : (e.message ?? 'Erro'); loading = false; });
-                    } catch (e) {
-                      setDialogState(() { erro = 'Erro ao ativar MFA: $e'; loading = false; });
-                    }
+                  try {
+                    final callable = _functions.httpsCallable('disableTotp');
+                    await callable.call({'code': codeController.text.trim()});
+                    Navigator.pop(dialogContext);
+                    setState(() => _mfaAtivo = false);
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('2FA desativado'), backgroundColor: Color(0xFF2E7D32)));
+                  } on FirebaseFunctionsException catch (e) {
+                    setDialogState(() { erro = e.message ?? 'Codigo invalido'; loading = false; });
+                  } catch (_) {
+                    setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: loading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(codeSent ? 'Verificar' : 'Enviar SMS', style: const TextStyle(color: Colors.white)),
+                    : const Text('Desativar', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
         );
       },
     );
-  }
-
-  Future<void> _unenrollMfa() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser!;
-      final factors = await user.multiFactor.getEnrolledFactors();
-      if (factors.isNotEmpty) {
-        await user.multiFactor.unenroll(multiFactorInfo: factors.first);
-      }
-      final callable = _functions.httpsCallable('updateMfaPreference');
-      await callable.call({'mfaAtivo': false});
-      setState(() => _mfaAtivo = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('MFA desativado'), backgroundColor: Color(0xFF2E7D32)));
-    } catch (e) {
-      setState(() => _mfaAtivo = true);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao desativar MFA'), backgroundColor: Colors.red));
-    }
   }
 
   @override
