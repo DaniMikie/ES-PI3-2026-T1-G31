@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
@@ -36,6 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+        if (!mounted) return;
+
+        // Verifica se tem TOTP ativo
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable('checkTotp');
+          final result = await callable.call();
+          final data = Map<String, dynamic>.from(result.data as Map);
+          final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+          final totpEnabled = inner['totpEnabled'] == true;
+
+          if (totpEnabled) {
+            if (mounted) _showTotpLoginDialog();
+            return;
+          }
+        } catch (_) {
+          // Se falhar a verificação, segue pro app (não bloqueia)
+        }
+
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -43,9 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
             (route) => false,
           );
         }
-      } on FirebaseAuthMultiFactorException catch (e) {
-        // Usuário tem MFA ativo — pedir código SMS
-        if (mounted) _handleMfaLogin(e.resolver);
       } on FirebaseAuthException catch (e) {
         String message = 'Erro ao fazer login';
         if (e.code == 'user-not-found') {
@@ -66,116 +82,83 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _forgotPassword() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-    );
-  }
-
-  void _handleMfaLogin(MultiFactorResolver resolver) {
+  void _showTotpLoginDialog() {
     final codeController = TextEditingController();
-    String? verificationId;
-
-    // Pega o primeiro fator (telefone)
-    final hint = resolver.hints.first as PhoneMultiFactorInfo;
-
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         String? erro;
         bool loading = false;
-        bool codeSent = false;
-
         return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            // Envia SMS automaticamente na primeira vez
-            if (!codeSent && !loading && verificationId == null) {
-              setDialogState(() => loading = true);
-              FirebaseAuth.instance.verifyPhoneNumber(
-                multiFactorSession: resolver.session,
-                multiFactorInfo: hint,
-                verificationCompleted: (_) {},
-                verificationFailed: (e) {
-                  setDialogState(() { erro = e.message ?? 'Erro ao enviar SMS'; loading = false; });
-                },
-                codeSent: (vId, _) {
-                  verificationId = vId;
-                  setDialogState(() { codeSent = true; loading = false; });
-                },
-                codeAutoRetrievalTimeout: (_) {},
-              );
-            }
-
-            return AlertDialog(
-              title: const Text('Verificacao MFA'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (erro != null)
-                      Container(
-                        width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                        child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                      ),
-                    Text(
-                      codeSent ? 'Digite o codigo enviado para ${hint.phoneNumber}' : 'Enviando codigo SMS...',
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                    if (codeSent) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: codeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Codigo SMS', hintText: '123456'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: loading ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancelar'),
-                ),
-                if (codeSent)
-                  ElevatedButton(
-                    onPressed: loading ? null : () async {
-                      if (codeController.text.trim().isEmpty) { setDialogState(() => erro = 'Informe o codigo'); return; }
-                      setDialogState(() { loading = true; erro = null; });
-                      try {
-                        final credential = PhoneAuthProvider.credential(
-                          verificationId: verificationId!,
-                          smsCode: codeController.text.trim(),
-                        );
-                        final assertion = PhoneMultiFactorGenerator.getAssertion(credential);
-                        await resolver.resolveSignIn(assertion);
-                        Navigator.pop(dialogContext);
-                        if (mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => const MainScreen()),
-                            (route) => false,
-                          );
-                        }
-                      } on FirebaseAuthException catch (e) {
-                        setDialogState(() { erro = e.code == 'invalid-verification-code' ? 'Codigo incorreto' : (e.message ?? 'Erro'); loading = false; });
-                      } catch (e) {
-                        setDialogState(() { erro = 'Erro: $e'; loading = false; });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
-                    child: loading
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Verificar', style: TextStyle(color: Colors.white)),
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: const Text('Verificacao 2FA'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Digite o codigo do Google Authenticator', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 16),
+                if (erro != null)
+                  Container(
+                    width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                    child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
                   ),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(hintText: '000000', counterText: '', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                ),
               ],
-            );
-          },
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () async {
+                  Navigator.pop(dialogContext);
+                  await FirebaseAuth.instance.signOut();
+                },
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: loading ? null : () async {
+                  if (codeController.text.trim().length != 6) { setDialogState(() => erro = 'Codigo de 6 digitos'); return; }
+                  setDialogState(() { loading = true; erro = null; });
+                  try {
+                    final callable = FirebaseFunctions.instance.httpsCallable('verifyTotp');
+                    await callable.call({'code': codeController.text.trim(), 'action': 'login'});
+                    Navigator.pop(dialogContext);
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MainScreen()),
+                        (route) => false,
+                      );
+                    }
+                  } on FirebaseFunctionsException catch (e) {
+                    setDialogState(() { erro = e.message ?? 'Codigo invalido'; loading = false; });
+                  } catch (_) {
+                    setDialogState(() { erro = 'Erro ao verificar'; loading = false; });
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                child: loading
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Verificar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  void _forgotPassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
     );
   }
 
