@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -191,9 +192,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Campo Nome
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nome completo*',
-                      prefixIcon: Icon(Icons.person_outline),
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SvgPicture.asset(
+                            'assets/icons/person.svg',
+                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                       focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
@@ -208,10 +217,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email*',
                       hintText: 'seuemail@exemplo.com',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFC8C8C8),
+                      ),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/email.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                       focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
@@ -229,10 +249,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _cpfController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [_cpfMask],
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'CPF*',
                       hintText: '000.000.000-00',
-                      prefixIcon: Icon(Icons.badge_outlined),
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFC8C8C8),
+                      ),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/pencil.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                       focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
@@ -251,10 +282,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     inputFormatters: [_phoneMask],
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Telefone celular*',
                       hintText: '(00) 00000-0000',
-                      prefixIcon: Icon(Icons.phone_outlined),
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFC8C8C8),
+                      ),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/phone.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                       focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
                     ),
@@ -273,10 +315,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: !_viewPassword,
                     decoration: InputDecoration(
                       labelText: 'Senha*',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/password.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       suffixIcon: IconButton(
-                        icon: Icon(_viewPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                        onPressed: () => setState(() => _viewPassword = !_viewPassword),
+                        icon: SvgPicture.asset(
+                          _viewPassword
+                              ? 'assets/icons/eye_on.svg'
+                              : 'assets/icons/eye_off.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                        onPressed: () =>
+                            setState(() => _viewPassword = !_viewPassword),
                       ),
                       enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                       focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
@@ -295,9 +353,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: !_viewConfirmPassword,
                     decoration: InputDecoration(
                       labelText: 'Confirmar senha*',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/password.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       suffixIcon: IconButton(
-                        icon: Icon(_viewConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        icon: SvgPicture.asset(
+                          _viewConfirmPassword
+                              ? 'assets/icons/eye_on.svg'
+                              : 'assets/icons/eye_off.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
                         onPressed: () => setState(() => _viewConfirmPassword = !_viewConfirmPassword),
                       ),
                       enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
