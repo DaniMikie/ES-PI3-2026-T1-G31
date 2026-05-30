@@ -26,8 +26,6 @@ class _MarketScreenState extends State<MarketScreen> {
   List<Map<String, dynamic>> _startups = [];
   List<String> _myStartupIds = [];
   List<Map<String, dynamic>> _myOffers = [];
-  List<Map<String, dynamic>> _allOffers = [];
-  List<String> _startupsWithOffers = [];
   bool _loading = true;
   bool _loadingMyOffers = false;
   String _searchQuery = '';
@@ -57,17 +55,7 @@ class _MarketScreenState extends State<MarketScreen> {
       );
       final myIds = positions.map((p) => p['startupId'] as String).toList();
 
-      // Carrega IDs de startups com ofertas ativas (pra filtrar no modo comprar)
-      List<String> startupsWithOffers = [];
-      try {
-        final offersCallable = _functions.httpsCallable('listStartupsWithOffers');
-        final offersResult = await offersCallable.call();
-        final offersData = Map<String, dynamic>.from(offersResult.data as Map);
-        final offersInner = Map<String, dynamic>.from(offersData['data'] as Map? ?? offersData);
-        startupsWithOffers = List<String>.from(offersInner['startupIds'] as List? ?? []);
-      } catch (_) {}
-
-      if (mounted) setState(() { _startups = startups; _myStartupIds = myIds; _startupsWithOffers = startupsWithOffers; _loading = false; });
+      if (mounted) setState(() { _startups = startups; _myStartupIds = myIds; _loading = false; });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -140,7 +128,7 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  // ── Menu do usuário ──────────────────────────────────────────────
+  // Menu do usuário
   void _showUserMenu() {
     showDialog(
       context: context,
@@ -176,7 +164,7 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  // ── Confirmação de saída ─────────────────────────────────────────
+  // Confirmação de saída
   void _confirmExit() {
     showDialog(
       context: context,
@@ -215,8 +203,6 @@ class _MarketScreenState extends State<MarketScreen> {
     setState(() => _mode = mode);
     if (mode == MarketMode.myOffers) {
       _loadMyOffers();
-    } else {
-      _loadData();
     }
   }
 
@@ -238,25 +224,12 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
-  String _formatMoney(double value) {
-    final parts = value.toStringAsFixed(2).split('.');
-    final intPart = parts[0];
-    final decPart = parts[1];
-    final buffer = StringBuffer();
-    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
-    if (intPart.startsWith('-')) buffer.write('-');
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return 'R\$ $buffer,$decPart';
-  }
+  String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+
   List<Map<String, dynamic>> get _filteredStartups {
     final base = _mode == MarketMode.sell
         ? _startups.where((s) => _myStartupIds.contains(s['id'])).toList()
-        : _mode == MarketMode.buy
-            ? _startups.where((s) => _startupsWithOffers.contains(s['id'])).toList()
-            : _startups;
+        : _startups;
     if (_searchQuery.isEmpty) return base;
     final q = _searchQuery.toLowerCase();
     return base.where((s) {
@@ -274,7 +247,7 @@ class _MarketScreenState extends State<MarketScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Cabeçalho ──────────────────────────────────────
+            // Cabeçalho
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Stack(
@@ -318,7 +291,7 @@ class _MarketScreenState extends State<MarketScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 _mode == MarketMode.buy
-                    ? 'Startups com ofertas de investidores disponiveis'
+                    ? 'Escolha uma startup para ver as ofertas disponíveis'
                     : _mode == MarketMode.sell
                     ? 'Selecione a startup para criar seu anúncio de venda'
                     : 'Gerencie e cancele seus anúncios ativos',
@@ -364,6 +337,16 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _mode == MarketMode.buy
+                      ? 'Toque na startup para ver as ofertas de venda'
+                      : 'Toque na startup para criar seu anúncio',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 10),
@@ -415,13 +398,12 @@ class _MarketScreenState extends State<MarketScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
 
     final lista = _filteredStartups;
-
     if (lista.isEmpty) {
       return Center(
         child: Text(
-          _mode == MarketMode.buy
-              ? 'Nenhuma startup encontrada'
-              : 'Você não possui tokens para anunciar',
+          _mode == MarketMode.sell
+              ? 'Você não possui tokens para anunciar'
+              : 'Nenhuma startup encontrada',
           style: const TextStyle(color: Colors.grey),
         ),
       );
@@ -519,7 +501,7 @@ class _MarketScreenState extends State<MarketScreen> {
                                 fontWeight: _mode == MarketMode.buy ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
-                            if (_mode == MarketMode.buy)
+                            if (_mode == MarketMode.buy || _mode == MarketMode.sell)
                               Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withOpacity(0.7)),
                           ],
                         ),
@@ -540,173 +522,7 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  // Aba "Comprar" — mostra todas as ofertas disponíveis
-  Widget _buildAllOffers() {
-    if (_allOffers.isEmpty) {
-      return RefreshIndicator(
-        color: const Color(0xFF2E7D32),
-        onRefresh: _loadData,
-        child: ListView(
-          children: const [
-            SizedBox(height: 60),
-            Center(child: Text('Nenhuma oferta disponivel no momento', style: TextStyle(color: Colors.grey))),
-          ],
-        ),
-      );
-    }
-
-    final filtered = _searchQuery.isEmpty
-        ? _allOffers
-        : _allOffers.where((o) {
-            final name = (o['startupName'] as String? ?? '').toLowerCase();
-            return name.contains(_searchQuery.toLowerCase());
-          }).toList();
-
-    return RefreshIndicator(
-      color: const Color(0xFF2E7D32),
-      onRefresh: _loadData,
-      child: ListView.separated(
-        itemCount: filtered.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final offer = filtered[index];
-          final startupName = offer['startupName'] as String? ?? '';
-          final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
-          final priceCents = offer['priceCents'] is num ? (offer['priceCents'] as num).toInt() : 0;
-          final priceReais = priceCents / 100;
-          final totalReais = qty * priceReais;
-          final offerId = offer['id'] as String? ?? '';
-          final logo = startupName.length >= 2 ? startupName.substring(0, 2).toUpperCase() : 'S';
-
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(10)),
-                  alignment: Alignment.center,
-                  child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(startupName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      Text('$qty tokens a R\$ ${priceReais.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                      Text('Total: R\$ ${totalReais.toStringAsFixed(2).replaceAll('.', ',')}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => _acceptOffer(offerId, qty, priceReais, startupName),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text('Comprar', style: TextStyle(color: Colors.white, fontSize: 13)),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _acceptOffer(String offerId, int qty, double priceReais, String startupName) async {
-    // Verifica saldo antes de pedir senha
-    final totalCostCents = (qty * priceReais * 100).round();
-    try {
-      final callable = _functions.httpsCallable('getWallet');
-      final result = await callable.call();
-      final data = Map<String, dynamic>.from(result.data as Map);
-      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
-      final rawBalance = inner['balanceCents'];
-      final balanceCents = rawBalance is int ? rawBalance : (rawBalance is num ? rawBalance.toInt() : 0);
-      if (balanceCents < totalCostCents) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Colors.red),
-          );
-        }
-        return;
-      }
-    } catch (_) {}
-
-    final senhaController = TextEditingController();
-    bool senhaVisivel = false;
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        String? erro;
-        bool loading = false;
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Confirmar compra', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text('$qty tokens de $startupName a R\$ ${priceReais.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 16),
-                  if (erro != null) Container(width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                  TextField(
-                    controller: senhaController,
-                    obscureText: !senhaVisivel,
-                    enabled: !loading,
-                    decoration: InputDecoration(
-                      hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined), onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel)),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity, height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                      onPressed: loading ? null : () async {
-                        if (senhaController.text.isEmpty) { setDialogState(() => erro = 'Informe sua senha'); return; }
-                        setDialogState(() { loading = true; erro = null; });
-                        try {
-                          final user = FirebaseAuth.instance.currentUser!;
-                          await user.reauthenticateWithCredential(EmailAuthProvider.credential(email: user.email!, password: senhaController.text));
-                          final callable = _functions.httpsCallable('acceptOffer');
-                          await callable.call({'offerId': offerId});
-                          Navigator.pop(dialogContext);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Compra realizada! $qty tokens de $startupName'), backgroundColor: const Color(0xFF2E7D32)));
-                            _loadData();
-                          }
-                        } on FirebaseAuthException catch (_) {
-                          setDialogState(() { erro = 'Senha incorreta'; loading = false; });
-                        } on FirebaseFunctionsException catch (e) {
-                          setDialogState(() { erro = e.message ?? 'Erro na compra'; loading = false; });
-                        } catch (_) {
-                          setDialogState(() { erro = 'Erro inesperado'; loading = false; });
-                        }
-                      },
-                      child: loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Confirmar', style: TextStyle(color: Colors.white, fontSize: 16)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Aba "Meus anúncios"─────────────────────────────────────────────────
+  // Aba "Meus anúncios"
   Widget _buildMyOffers() {
     if (_loadingMyOffers) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)));
@@ -803,34 +619,21 @@ class _MarketScreenState extends State<MarketScreen> {
                     ],
                   ),
                 ),
-                // Botão cancelar (só pra ofertas ativas)
-                if (status == 'active')
-                  GestureDetector(
-                    onTap: () => _confirmCancelOffer(offerId, startupName, qty, priceCents),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.red.shade300),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
+                // Botão cancelar
+                GestureDetector(
+                  onTap: () => _confirmCancelOffer(offerId, startupName, qty, priceCents),
+                  child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: status == 'sold' ? const Color(0xFF2E7D32).withOpacity(0.1) : Colors.grey.shade100,
+                      border: Border.all(color: Colors.red.shade300),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      status == 'sold' ? 'Vendido' : 'Cancelado',
-                      style: TextStyle(color: status == 'sold' ? const Color(0xFF2E7D32) : Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
+                      'Cancelar',
+                      style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
+                ),
               ],
             ),
           );
