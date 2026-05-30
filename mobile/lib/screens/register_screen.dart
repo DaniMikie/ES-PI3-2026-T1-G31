@@ -51,6 +51,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  bool _isValidCpf(String cpf) {
+    if (cpf.length != 11) return false;
+    // Rejeita CPFs com todos os dígitos iguais
+    if (RegExp(r'^(\d)\1{10}$').hasMatch(cpf)) return false;
+
+    // Calcula primeiro dígito verificador
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      sum += int.parse(cpf[i]) * (10 - i);
+    }
+    int d1 = 11 - (sum % 11);
+    if (d1 >= 10) d1 = 0;
+    if (int.parse(cpf[9]) != d1) return false;
+
+    // Calcula segundo dígito verificador
+    sum = 0;
+    for (int i = 0; i < 10; i++) {
+      sum += int.parse(cpf[i]) * (11 - i);
+    }
+    int d2 = 11 - (sum % 11);
+    if (d2 >= 10) d2 = 0;
+    if (int.parse(cpf[10]) != d2) return false;
+
+    return true;
+  }
+
   void _register() async {
     setState(() { _formError = null; _cpfError = null; _phoneError = null; _emailError = null; });
     if (_formKey.currentState!.validate()) {
@@ -213,6 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Informe seu CPF';
                       if (_cpfMask.getUnmaskedText().length != 11) return 'CPF incompleto';
+                      if (!_isValidCpf(_cpfMask.getUnmaskedText())) return 'CPF inválido';
                       if (_cpfError != null) return _cpfError;
                       return null;
                     },

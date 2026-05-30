@@ -22,17 +22,27 @@ export const listOffers = onCall(async (request) => {
 
   const snapshot = await query.limit(50).get();
 
-  const offers = snapshot.docs
-    .filter((doc) => doc.data().sellerUid !== user.uid) // nao mostra ofertas proprias
-    .map((doc) => ({
-      id: doc.id,
-      startupId: doc.data().startupId,
-      startupName: doc.data().startupName,
-      quantity: doc.data().quantity,
-      priceCents: doc.data().priceCents,
-      sellerEmail: doc.data().sellerEmail,
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString?.() ?? null,
-    }));
+  const filteredDocs = snapshot.docs
+    .filter((doc) => doc.data().sellerUid !== user.uid);
+
+  // Busca nomes dos vendedores
+  const sellerUids = [...new Set(filteredDocs.map((doc) => doc.data().sellerUid as string))];
+  const sellerNames: Record<string, string> = {};
+  for (const uid of sellerUids) {
+    const userDoc = await db.collection("users").doc(uid).get();
+    sellerNames[uid] = userDoc.data()?.name ?? userDoc.data()?.email ?? "Vendedor";
+  }
+
+  const offers = filteredDocs.map((doc) => ({
+    id: doc.id,
+    startupId: doc.data().startupId,
+    startupName: doc.data().startupName,
+    quantity: doc.data().quantity,
+    priceCents: doc.data().priceCents,
+    sellerEmail: doc.data().sellerEmail,
+    sellerName: sellerNames[doc.data().sellerUid] ?? "Vendedor",
+    createdAt: doc.data().createdAt?.toDate?.()?.toISOString?.() ?? null,
+  }));
 
   return {
     data: {

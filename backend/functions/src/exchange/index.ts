@@ -13,5 +13,6 @@ export {getTokenHistory} from "./handlers/getTokenHistory";
 export {getWallet} from "./handlers/getWallet";
 export {listMyOffers} from "./handlers/listMyOffers";
 export {listOffers} from "./handlers/listOffers";
+export {listStartupsWithOffers} from "./handlers/listStartupsWithOffers";
 export {listTransactions} from "./handlers/listTransactions";
 export {sellTokens} from "./handlers/sellTokens";

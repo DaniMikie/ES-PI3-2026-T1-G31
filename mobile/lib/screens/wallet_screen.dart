@@ -192,7 +192,17 @@ class _WalletScreenState extends State<WalletScreen> {
   int _toCents(Object? value) => _toInt(value);
 
   String _formatMoney(num value) {
-    return 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+    final parts = value.toStringAsFixed(2).split('.');
+    final intPart = parts[0];
+    final decPart = parts[1];
+    final buffer = StringBuffer();
+    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
+    if (intPart.startsWith('-')) buffer.write('-');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'R\$ $buffer,$decPart';
   }
 
   String _startupLabel(String startupId) {
@@ -235,6 +245,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   void _addCredits() {
     final controller = TextEditingController();
+    final parentMessenger = ScaffoldMessenger.of(context);
 
     showDialog<void>(
       context: context,
@@ -243,7 +254,7 @@ class _WalletScreenState extends State<WalletScreen> {
         bool loading = false;
 
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (_, setDialogState) => AlertDialog(
             title: const Text('Adicionar saldo'),
             content: TextField(
               controller: controller,
@@ -283,7 +294,6 @@ class _WalletScreenState extends State<WalletScreen> {
 
                         try {
                           final navigator = Navigator.of(dialogContext);
-                          final messenger = ScaffoldMessenger.of(context);
                           final callable = _functions.httpsCallable(
                             'addCredits',
                           );
@@ -296,7 +306,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           await _loadWallet();
 
                           if (!mounted) return;
-                          messenger.showSnackBar(
+                          parentMessenger.showSnackBar(
                             SnackBar(
                               content: Text(
                                 '${_formatMoney(valor)} adicionado!',
@@ -780,15 +790,18 @@ class _WalletScreenState extends State<WalletScreen> {
                       : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  '${_chartVariation >= 0 ? '+' : ''}${_chartVariation.toStringAsFixed(2)}%',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _chartVariation >= 0
-                        ? const Color(0xFF2E7D32)
-                        : Colors.red,
+                child: Tooltip(
+                  message: 'Variação no período selecionado',
+                  child: Text(
+                    '${_chartVariation >= 0 ? '+' : ''}${_chartVariation.toStringAsFixed(2)}% no período',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: _chartVariation >= 0
+                          ? const Color(0xFF2E7D32)
+                          : Colors.red,
                   ),
+                ),
                 ),
               ),
           ],
@@ -1003,7 +1016,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${variation >= 0 ? '+' : ''}${variation.toStringAsFixed(1)}%',
+                            '${variation >= 0 ? '+' : ''}${variation.toStringAsFixed(1)}% lucro',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,

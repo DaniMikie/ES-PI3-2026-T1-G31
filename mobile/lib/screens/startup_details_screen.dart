@@ -212,6 +212,13 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                             );
                             return;
                           }
+                          // Verifica se tem tokens suficientes
+                          final userTokens = _startup!['access']?['tokenQuantity'];
+                          final available = userTokens is int ? userTokens : (userTokens is num ? userTokens.toInt() : 0);
+                          if (parsed > available) {
+                            setDialogState(() => erro = 'Voce possui apenas $available tokens');
+                            return;
+                          }
                           qty = parsed;
                           setDialogState(() {
                             pedindoSenha = true;
@@ -1033,6 +1040,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                     startupId: widget.startupId,
                     startupNome: _startup!['name'] as String? ?? '',
                     valorPorToken: priceCents / 100,
+                    tokensDisponiveis: tokensAvailable,
                   ),
                 ),
               ).then((_) => _loadDetails());
@@ -1376,7 +1384,7 @@ class _StartupChartState extends State<_StartupChart> {
               const Spacer(),
               if (!_loading && _points.isNotEmpty)
                 Text(
-                  '${_variation >= 0 ? '+' : ''}${_variation.toStringAsFixed(1)}%',
+                  '${_variation >= 0 ? '+' : ''}${_variation.toStringAsFixed(1)}% no período',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,

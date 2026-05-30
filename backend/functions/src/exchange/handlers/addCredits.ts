@@ -17,9 +17,15 @@ export const addCredits = onCall(async (request) => {
   // 2. Pega o valor que o Flutter mandou (em centavos)
   const amount = request.data?.amount;
 
-  // 3. Valida: precisa ser número e maior que zero
-  if (typeof amount !== "number" || amount <= 0) {
+  // 3. Valida: precisa ser número inteiro e maior que zero
+  if (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount)) {
     throw new HttpsError("invalid-argument", "Informe um valor valido maior que zero.");
+  }
+
+  // 4. Limite máximo: R$ 100.000.000.000.000,00 (100 trilhões em centavos)
+  const MAX_AMOUNT = 10000000000000000;
+  if (amount > MAX_AMOUNT) {
+    throw new HttpsError("invalid-argument", "Valor excede o limite maximo permitido.");
   }
 
   // 4. Soma o valor no saldo do usuário

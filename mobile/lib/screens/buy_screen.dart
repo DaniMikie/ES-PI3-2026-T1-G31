@@ -61,8 +61,19 @@ class _BuyScreenState extends State<BuyScreen> {
     }
   }
 
-  String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
-
+  String _formatMoney(double value) {
+    final parts = value.toStringAsFixed(2).split('.');
+    final intPart = parts[0];
+    final decPart = parts[1];
+    final buffer = StringBuffer();
+    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
+    if (intPart.startsWith('-')) buffer.write('-');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'R\$ $buffer,$decPart';
+  }
   @override
   Widget build(BuildContext context) {
     final logo = widget.startupName.length >= 2
@@ -351,15 +362,34 @@ class _BuyScreenState extends State<BuyScreen> {
     );
   }
 
-  void _showBuyConfirmation(Map<String, dynamic> offer) {
+  void _showBuyConfirmation(Map<String, dynamic> offer) async {
     final priceCents = offer['priceCents'] is num ? (offer['priceCents'] as num).toInt() : 0;
-    final pricePerToken = priceCents / 100;
     final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
+    final totalCostCents = priceCents * qty;
+
+    // Verifica saldo antes de mostrar dialog de confirmação
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
+      final result = await callable.call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final rawBalance = inner['balanceCents'];
+      final balanceCents = rawBalance is int ? rawBalance : (rawBalance is num ? rawBalance.toInt() : 0);
+      if (balanceCents < totalCostCents) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+    } catch (_) {}
+
+    final pricePerToken = priceCents / 100;
     final offerId = offer['id'] as String? ?? '';
 
-    // Controle de quantidade a comprar (pode ser parcial)
+    // Controle de quantidade (fixa — compra o anúncio todo)
     int buyQty = qty;
-    final qtyController = TextEditingController(text: qty.toString());
     final senhaController = TextEditingController();
     bool senhaVisivel = false;
 
@@ -408,22 +438,18 @@ class _BuyScreenState extends State<BuyScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Quantidade a comprar
-                      const Text('Quantidade desejada', style: TextStyle(fontWeight: FontWeight.bold)),
+                      // Quantidade (fixa — compra o anúncio todo)
+                      const Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: qtyController,
-                        keyboardType: TextInputType.number,
-                        enabled: !loading,
-                        decoration: InputDecoration(
-                          suffixText: 'de $qty disponíveis',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade100,
                         ),
-                        onChanged: (v) {
-                          final parsed = int.tryParse(v) ?? 0;
-                          setDialogState(() => buyQty = parsed.clamp(0, qty));
-                        },
+                        child: Text('$qty tokens', style: const TextStyle(fontSize: 16)),
                       ),
                       const SizedBox(height: 12),
 

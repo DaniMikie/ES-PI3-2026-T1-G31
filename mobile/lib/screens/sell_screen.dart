@@ -76,8 +76,19 @@ class _SellScreenState extends State<SellScreen> {
     }
   }
 
-  String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
-
+  String _formatMoney(double value) {
+    final parts = value.toStringAsFixed(2).split('.');
+    final intPart = parts[0];
+    final decPart = parts[1];
+    final buffer = StringBuffer();
+    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
+    if (intPart.startsWith('-')) buffer.write('-');
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'R\$ $buffer,$decPart';
+  }
   @override
   Widget build(BuildContext context) {
     final logo = widget.startupName.length >= 2

@@ -64,13 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Erro ao fazer login';
-        if (e.code == 'user-not-found') {
-          message = 'Usuário não encontrado';
-        } else if (e.code == 'wrong-password') {
-          message = 'Senha incorreta';
-        } else if (e.code == 'invalid-email') {
+        if (e.code == 'invalid-email') {
           message = 'E-mail inválido';
-        } else if (e.code == 'invalid-credential') {
+        } else if (e.code == 'invalid-credential' || e.code == 'user-not-found' || e.code == 'wrong-password') {
           message = 'E-mail ou senha incorretos';
         }
         if (mounted) {

@@ -12,12 +12,14 @@ class InvestmentScreen extends StatefulWidget {
   final String startupId;
   final String startupNome;
   final double valorPorToken;
+  final int tokensDisponiveis;
 
   const InvestmentScreen({
     super.key,
     required this.startupId,
     required this.startupNome,
     required this.valorPorToken,
+    this.tokensDisponiveis = 999999,
   });
 
   @override
@@ -43,7 +45,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
 
   double get _valorTotal => _quantidadeTokens * widget.valorPorToken;
 
-  void _avancar() {
+  void _avancar() async {
     if (_formKey.currentState!.validate()) {
       if (_quantidadeTokens <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,6 +53,32 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
         );
         return;
       }
+      if (_quantidadeTokens > widget.tokensDisponiveis) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Maximo disponivel: ${widget.tokensDisponiveis} tokens'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      // Verifica saldo antes de pedir senha
+      try {
+        final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
+        final result = await callable.call();
+        final data = Map<String, dynamic>.from(result.data as Map);
+        final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+        final rawBalance = inner['balanceCents'];
+        final balanceCents = rawBalance is int ? rawBalance : (rawBalance is num ? rawBalance.toInt() : 0);
+        final costCents = (_valorTotal * 100).round();
+        if (balanceCents < costCents) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Colors.red),
+            );
+          }
+          return;
+        }
+      } catch (_) {}
+
       _showAuthDialog();
     }
   }
