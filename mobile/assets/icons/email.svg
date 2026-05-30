@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Group</title>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Emails/email-mail-letter" fill-rule="nonzero">
+            <g id="Group" fill-rule="evenodd" transform="translate(-0.005, -0.005)">
+                <path d="M7.50312519,9.75406265 L10.4298141,11.5584542 C11.3955433,12.1538531 12.6144571,12.1538531 13.5801864,11.5584542 L16.506875,9.75406265" id="Path" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill-rule="nonzero"></path>
+                <rect id="Rectangle" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill-rule="nonzero" x="3.00125003" y="5.0020833" width="18.0074997" height="14.0058336" rx="3"></rect>
+                <polygon id="Path" fill-rule="nonzero" points="0 0 24.0100002 0 24.0100002 24.0100002 0 24.0100002"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

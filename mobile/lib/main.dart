@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       title: 'Mescla Invest',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF127A35)),
         useMaterial3: true,
         fontFamily: 'Poppins',
       ),

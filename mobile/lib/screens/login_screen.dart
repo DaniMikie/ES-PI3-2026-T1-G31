@@ -9,6 +9,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -98,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                    child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                   ),
                 TextField(
                   controller: codeController,
@@ -201,10 +202,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email*',
                       hintText: 'seuemail@exemplo.com',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      hintStyle: const TextStyle(
+                        color: Color(0xFFC8C8C8),
+                      ),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/email.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       enabledBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
                       ),
@@ -228,12 +240,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: !_viewPassword,
                     decoration: InputDecoration(
                       labelText: 'Senha*',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/password.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       suffixIcon: IconButton(
-                        icon: Icon(
+                        icon: SvgPicture.asset(
                           _viewPassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                              ? 'assets/icons/eye_on.svg'
+                              : 'assets/icons/eye_off.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
                         ),
                         onPressed: () =>
                             setState(() => _viewPassword = !_viewPassword),
