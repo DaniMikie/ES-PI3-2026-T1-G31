@@ -76,19 +76,8 @@ class _SellScreenState extends State<SellScreen> {
     }
   }
 
-  String _formatMoney(double value) {
-    final parts = value.toStringAsFixed(2).split('.');
-    final intPart = parts[0];
-    final decPart = parts[1];
-    final buffer = StringBuffer();
-    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
-    if (intPart.startsWith('-')) buffer.write('-');
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return 'R\$ $buffer,$decPart';
-  }
+  String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+
   @override
   Widget build(BuildContext context) {
     final logo = widget.startupName.length >= 2
@@ -112,7 +101,7 @@ class _SellScreenState extends State<SellScreen> {
           children: [
             const Text(
               'Criar anúncio de venda',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -132,7 +121,7 @@ class _SellScreenState extends State<SellScreen> {
                 children: [
                   Container(
                     width: 50, height: 50,
-                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(12)),
                     child: Center(child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                   ),
                   const SizedBox(width: 12),
@@ -152,7 +141,7 @@ class _SellScreenState extends State<SellScreen> {
                 ? const Text('Carregando...', style: TextStyle(color: Colors.grey, fontSize: 13))
                 : Text(
                     'Você possui $_myTokens tokens disponíveis',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                   ),
             const SizedBox(height: 4),
             Text(
@@ -167,8 +156,8 @@ class _SellScreenState extends State<SellScreen> {
               ),
               child: const Row(children: [
                 Text('Quer saber mais informações? ', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                Text('Ir para a startup', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
-                Icon(Icons.arrow_forward, size: 14, color: Colors.green),
+                Text('Ir para a startup', style: TextStyle(color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                Icon(Icons.arrow_forward, size: 14, color: const Color(0xFF2E7D32)),
               ]),
             ),
             const SizedBox(height: 28),
@@ -182,13 +171,15 @@ class _SellScreenState extends State<SellScreen> {
               controller: _quantityController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: '10',
+                hintText: '0',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
                 suffixText: 'Tokens',
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                suffixStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
                 ),
               ),
               onChanged: (v) => setState(() => quantity = int.tryParse(v) ?? 0),
@@ -202,7 +193,7 @@ class _SellScreenState extends State<SellScreen> {
               const Text('Preço sugerido (mercado): ', style: TextStyle(color: Colors.grey, fontSize: 13)),
               Text(
                 _formatMoney(widget.tokenPrice),
-                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ]),
             const SizedBox(height: 10),
@@ -211,12 +202,13 @@ class _SellScreenState extends State<SellScreen> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 hintText: '0,00',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
                 prefixText: 'R\$ ',
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
                 ),
               ),
               onChanged: (v) {
@@ -261,13 +253,13 @@ class _SellScreenState extends State<SellScreen> {
             Container(
               width: double.infinity, height: 60,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.green),
+                border: Border.all(color: const Color(0xFF2E7D32)),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: Text(
                   _formatMoney(totalValue),
-                  style: const TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 28, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -277,19 +269,19 @@ class _SellScreenState extends State<SellScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade100),
+                border: Border.all(color: const Color(0xFFC8E6C9)),
               ),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.green),
+                  Icon(Icons.info_outline, size: 16, color: const Color(0xFF2E7D32)),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Seu anúncio ficará visível para compradores no balcão. Os tokens só são transferidos quando alguém aceitar sua oferta.',
-                      style: TextStyle(fontSize: 12, color: Colors.green),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF2E7D32)),
                     ),
                   ),
                 ],
@@ -301,7 +293,7 @@ class _SellScreenState extends State<SellScreen> {
               width: double.infinity, height: 60,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF2E7D32),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 onPressed: canSell ? _criarAnuncio : null,
@@ -373,7 +365,7 @@ class _SellScreenState extends State<SellScreen> {
                         Text(widget.startupName, style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         Text('$quantity tokens × ${_formatMoney(_customPrice)}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                        Text('Total: ${_formatMoney(totalValue)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                        Text('Total: ${_formatMoney(totalValue)}', style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -394,12 +386,18 @@ class _SellScreenState extends State<SellScreen> {
                     enabled: !loading,
                     decoration: InputDecoration(
                       hintText: '••••••••',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                         onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -407,7 +405,7 @@ class _SellScreenState extends State<SellScreen> {
                     width: double.infinity, height: 55,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF2E7D32),
                         elevation: 0,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -436,7 +434,7 @@ class _SellScreenState extends State<SellScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Anúncio publicado! $quantity tokens por ${_formatMoney(_customPrice)} cada'),
-                                backgroundColor: Colors.green,
+                                backgroundColor: const Color(0xFF2E7D32),
                               ),
                             );
                             Navigator.pop(context);
