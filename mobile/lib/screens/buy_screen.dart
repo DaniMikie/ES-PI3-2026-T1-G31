@@ -61,19 +61,8 @@ class _BuyScreenState extends State<BuyScreen> {
     }
   }
 
-  String _formatMoney(double value) {
-    final parts = value.toStringAsFixed(2).split('.');
-    final intPart = parts[0];
-    final decPart = parts[1];
-    final buffer = StringBuffer();
-    final digits = intPart.startsWith('-') ? intPart.substring(1) : intPart;
-    if (intPart.startsWith('-')) buffer.write('-');
-    for (int i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return 'R\$ $buffer,$decPart';
-  }
+  String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+
   @override
   Widget build(BuildContext context) {
     final logo = widget.startupName.length >= 2
@@ -90,7 +79,7 @@ class _BuyScreenState extends State<BuyScreen> {
         centerTitle: true,
       ),
       body: RefreshIndicator(
-        color: Colors.green,
+        color: const Color(0xFF2E7D32),
         onRefresh: _loadOffers,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -100,7 +89,7 @@ class _BuyScreenState extends State<BuyScreen> {
             children: [
               const Text(
                 'Comprar tokens',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -120,7 +109,7 @@ class _BuyScreenState extends State<BuyScreen> {
                   children: [
                     Container(
                       width: 50, height: 50,
-                      decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(12)),
                       child: Center(child: Text(logo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                     ),
                     const SizedBox(width: 12),
@@ -128,16 +117,24 @@ class _BuyScreenState extends State<BuyScreen> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(widget.startupName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         Text(widget.tags.isNotEmpty ? widget.tags.first : '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Ver ofertas disponíveis',
+                              style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withOpacity(0.7)),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Preço de mercado: ${_formatMoney(widget.tokenPrice)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black),
+                        ),
                       ]),
                     ),
-                    // Preço de mercado como referência
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      const Text('Preço mercado', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                      Text(
-                        _formatMoney(widget.tokenPrice),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
-                      ),
-                    ]),
                   ],
                 ),
               ),
@@ -149,8 +146,8 @@ class _BuyScreenState extends State<BuyScreen> {
                 ),
                 child: const Row(children: [
                   Text('Quer saber mais informações? ', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  Text('Ir para a startup', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Icon(Icons.arrow_forward, size: 14, color: Colors.green),
+                  Text('Ir para a startup', style: TextStyle(color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                  Icon(Icons.arrow_forward, size: 14, color: const Color(0xFF2E7D32)),
                 ]),
               ),
               const SizedBox(height: 28),
@@ -178,7 +175,7 @@ class _BuyScreenState extends State<BuyScreen> {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
-                    child: CircularProgressIndicator(color: Colors.green),
+                    child: CircularProgressIndicator(color: const Color(0xFF2E7D32)),
                   ),
                 )
               else if (_offerError != null)
@@ -190,7 +187,7 @@ class _BuyScreenState extends State<BuyScreen> {
                       const SizedBox(height: 8),
                       Text(_offerError!, style: const TextStyle(color: Colors.grey)),
                       const SizedBox(height: 12),
-                      TextButton(onPressed: _loadOffers, child: const Text('Tentar novamente', style: TextStyle(color: Colors.green))),
+                      TextButton(onPressed: _loadOffers, child: const Text('Tentar novamente', style: TextStyle(color: const Color(0xFF2E7D32)))),
                     ]),
                   ),
                 )
@@ -245,10 +242,10 @@ class _BuyScreenState extends State<BuyScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isFirst ? Colors.green : Colors.grey.shade300,
+                            color: isFirst ? const Color(0xFF2E7D32) : Colors.grey.shade300,
                             width: isFirst ? 2 : 1,
                           ),
-                          color: isFirst ? Colors.green.shade50 : Colors.white,
+                          color: isFirst ? const Color(0xFFE8F5E9) : Colors.white,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +257,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.green,
+                                      color: const Color(0xFF2E7D32),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
@@ -301,7 +298,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                     children: [
                                       Text(
                                         _formatMoney(pricePerToken),
-                                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+                                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
                                       ),
                                       Text(
                                         'por token',
@@ -337,7 +334,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: Colors.green,
+                                    color: const Color(0xFF2E7D32),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Text(
@@ -362,34 +359,15 @@ class _BuyScreenState extends State<BuyScreen> {
     );
   }
 
-  void _showBuyConfirmation(Map<String, dynamic> offer) async {
+  void _showBuyConfirmation(Map<String, dynamic> offer) {
     final priceCents = offer['priceCents'] is num ? (offer['priceCents'] as num).toInt() : 0;
-    final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
-    final totalCostCents = priceCents * qty;
-
-    // Verifica saldo antes de mostrar dialog de confirmação
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
-      final result = await callable.call();
-      final data = Map<String, dynamic>.from(result.data as Map);
-      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
-      final rawBalance = inner['balanceCents'];
-      final balanceCents = rawBalance is int ? rawBalance : (rawBalance is num ? rawBalance.toInt() : 0);
-      if (balanceCents < totalCostCents) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Colors.red),
-          );
-        }
-        return;
-      }
-    } catch (_) {}
-
     final pricePerToken = priceCents / 100;
+    final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
     final offerId = offer['id'] as String? ?? '';
 
-    // Controle de quantidade (fixa — compra o anúncio todo)
+    // Controle de quantidade a comprar (pode ser parcial)
     int buyQty = qty;
+    final qtyController = TextEditingController(text: qty.toString());
     final senhaController = TextEditingController();
     bool senhaVisivel = false;
 
@@ -415,6 +393,7 @@ class _BuyScreenState extends State<BuyScreen> {
 
                       // Resumo da oferta
                       Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade50,
@@ -438,18 +417,22 @@ class _BuyScreenState extends State<BuyScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Quantidade (fixa — compra o anúncio todo)
-                      const Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold)),
+                      // Quantidade a comprar
+                      const Text('Quantidade desejada', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade100,
+                      TextField(
+                        controller: qtyController,
+                        keyboardType: TextInputType.number,
+                        enabled: !loading,
+                        decoration: InputDecoration(
+                          suffixText: 'de $qty disponíveis',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),
-                        child: Text('$qty tokens', style: const TextStyle(fontSize: 16)),
+                        onChanged: (v) {
+                          final parsed = int.tryParse(v) ?? 0;
+                          setDialogState(() => buyQty = parsed.clamp(0, qty));
+                        },
                       ),
                       const SizedBox(height: 12),
 
@@ -460,7 +443,7 @@ class _BuyScreenState extends State<BuyScreen> {
                           const Text('Total a pagar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(
                             _formatMoney(totalValue),
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
                           ),
                         ],
                       ),
@@ -482,12 +465,18 @@ class _BuyScreenState extends State<BuyScreen> {
                         enabled: !loading,
                         decoration: InputDecoration(
                           hintText: '••••••••',
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                             onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -495,7 +484,7 @@ class _BuyScreenState extends State<BuyScreen> {
                         width: double.infinity, height: 55,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: const Color(0xFF2E7D32),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                           onPressed: (loading || buyQty <= 0) ? null : () async {
@@ -520,7 +509,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Compra realizada! $buyQty tokens de ${widget.startupName}'),
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: const Color(0xFF2E7D32),
                                   ),
                                 );
                                 Navigator.pop(context);
@@ -569,7 +558,7 @@ class _BuyScreenState extends State<BuyScreen> {
         actions: [
           ElevatedButton(
             onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
             child: const Text('Voltar', style: TextStyle(color: Colors.white)),
           ),
         ],
