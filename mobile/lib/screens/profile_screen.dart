@@ -2,6 +2,7 @@
  * Tela Perfil - MesclaInvest
  * Autor: Rafaela Jacobsen Braga | RA: 25004280
  * Autor: Daniela Mikie Kikuchi Goncalves | RA: 25003068
+ * Ajuste: Ana Luísa Maso Mafra | RA: 25007997
  */
 
 import 'package:flutter/material.dart';
@@ -300,11 +301,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         const Text('Senha*', style: TextStyle(fontSize: 13, color: Colors.grey)),
                         const SizedBox(height: 6),
-                        const Text('--------', style: TextStyle(fontSize: 15, color: Colors.black)),
+                        const Text('••••••••', style: TextStyle(fontSize: 15, color: Colors.black)),
                         const SizedBox(height: 8),
                         Divider(color: Colors.grey.shade300, height: 1),
                         const SizedBox(height: 8),
                         GestureDetector(onTap: _alterarSenha, child: const Text('Alterar senha', style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        Switch(value: _mfaAtivo, onChanged: _onMfaToggle, activeColor: Colors.white, activeTrackColor: const Color(0xFF2E7D32), inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade400),
+                        const SizedBox(width: 8),
+                        const Text('Ativar Autenticação Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
                       ],
                     ),
                     const SizedBox(height: 36),
@@ -324,14 +333,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)), elevation: 0),
                         child: const Text('Sair desse perfil', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
-                    ),
-                    const SizedBox(height: 28),
-                    Row(
-                      children: [
-                        Switch(value: _mfaAtivo, onChanged: _onMfaToggle, activeColor: Colors.white, activeTrackColor: const Color(0xFF2E7D32), inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade400),
-                        const SizedBox(width: 8),
-                        const Text('Ativar Autenticação Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
-                      ],
                     ),
                     const SizedBox(height: 32),
                   ],
