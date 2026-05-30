@@ -3,7 +3,9 @@
  * Autor: Daniela Mikie Kikuchi Goncalves | RA: 25003068
  *
  * Busca todas as transacoes de uma startup (de qualquer usuario),
- * agrupa por periodo e calcula preco medio. Usado pra grafico na tela da startup.
+ * agrupa por periodo e calcula preco medio. Adiciona o preco atual
+ * (currentTokenPriceCents) como ultimo ponto pra consistencia com o valor exibido.
+ * Usado pra grafico de valorizacao na tela da startup.
  */
 
 import {onCall, HttpsError} from "firebase-functions/https";
@@ -46,6 +48,9 @@ export const getStartupTokenHistory = onCall(async (request) => {
     return {data: {points: [], variation: 0, period}};
   }
 
+  // Agrupa transações por intervalo de tempo e calcula preço médio ponderado
+  // totalCents = soma de (preço × quantidade) | totalQty = soma das quantidades
+  // Preço médio = totalCents / totalQty
   const groups: Map<string, {totalCents: number; totalQty: number}> = new Map();
 
   for (const doc of snapshot.docs) {
@@ -55,18 +60,19 @@ export const getStartupTokenHistory = onCall(async (request) => {
     if (data.type === "credit" || priceCents <= 0 || qty <= 0) continue;
 
     const createdAt = data.createdAt?.toDate?.() ?? new Date();
+    const localDate = new Date(createdAt.getTime() - 3 * 60 * 60 * 1000);
     let label: string;
 
     if (groupBy === "hora") {
-      label = `${String(createdAt.getHours()).padStart(2, "0")}:00`;
+      label = `${String(localDate.getHours()).padStart(2, "0")}:00`;
     } else if (groupBy === "dia") {
-      label = `${String(createdAt.getDate()).padStart(2, "0")}/${String(createdAt.getMonth() + 1).padStart(2, "0")}`;
+      label = `${String(localDate.getDate()).padStart(2, "0")}/${String(localDate.getMonth() + 1).padStart(2, "0")}`;
     } else if (groupBy === "semana") {
-      const weekNum = Math.ceil(createdAt.getDate() / 7);
-      label = `S${weekNum}/${createdAt.getMonth() + 1}`;
+      const weekNum = Math.ceil(localDate.getDate() / 7);
+      label = `S${weekNum}/${localDate.getMonth() + 1}`;
     } else {
       const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-      label = months[createdAt.getMonth()];
+      label = months[localDate.getMonth()];
     }
 
     const existing = groups.get(label) ?? {totalCents: 0, totalQty: 0};
@@ -81,6 +87,22 @@ export const getStartupTokenHistory = onCall(async (request) => {
     points.push({label, value: avgPrice});
   }
 
+  // Se só tem 1 ponto, duplica pra o gráfico conseguir renderizar (precisa de >= 2)
+  if (points.length === 1) {
+    const single = points[0];
+    points.unshift({label: "início", value: single.value});
+  }
+
+  // Adiciona preço atual real como último ponto
+  // Garante que o gráfico termine no valor consistente com "Por token" exibido na tela
+  const startupDoc = await db.collection("startups").doc(startupId).get();
+  const currentPrice = startupDoc.data()?.currentTokenPriceCents as number ?? 0;
+  if (currentPrice > 0) {
+    points.push({label: "atual", value: currentPrice});
+  }
+
+  // Variação % entre primeiro e último ponto do período
+  // Indica se o token valorizou (+) ou desvalorizou (-) no período selecionado
   let variation = 0;
   if (points.length >= 2) {
     const first = points[0].value;

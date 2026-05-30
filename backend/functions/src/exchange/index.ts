@@ -10,6 +10,7 @@ export {cancelOffer} from "./handlers/cancelOffer";
 export {createOffer} from "./handlers/createOffer";
 export {getStartupTokenHistory} from "./handlers/getStartupTokenHistory";
 export {getTokenHistory} from "./handlers/getTokenHistory";
+export {getPortfolioHistory} from "./handlers/getPortfolioHistory";
 export {getWallet} from "./handlers/getWallet";
 export {listMyOffers} from "./handlers/listMyOffers";
 export {listOffers} from "./handlers/listOffers";

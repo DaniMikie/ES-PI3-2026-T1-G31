@@ -3,6 +3,9 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  * Alterações: Rafaela Jacobsen | RA: 25004280
  * Ajustes: Felipe Nasser Coelho Moussa | RA: 25004922
+ *
+ * Gráfico de valorização com cor dinâmica (verde/vermelho/cinza)
+ * conforme variação no período — Daniela Mikie | RA: 25003068
  */
 
 import 'package:flutter/material.dart';
@@ -1384,13 +1387,15 @@ class _StartupChartState extends State<_StartupChart> {
               const Spacer(),
               if (!_loading && _points.isNotEmpty)
                 Text(
-                  '${_variation >= 0 ? '+' : ''}${_variation.toStringAsFixed(1)}% no período',
+                  '${_variation > 0 ? '+' : ''}${_variation.toStringAsFixed(1)}% no período',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: _variation >= 0
+                    color: _variation > 0
                         ? const Color(0xFF2E7D32)
-                        : Colors.red,
+                        : _variation < 0
+                            ? Colors.red
+                            : Colors.grey,
                   ),
                 ),
             ],
@@ -1430,21 +1435,26 @@ class _StartupChartState extends State<_StartupChart> {
         .toList();
     final maxVal = values.reduce((a, b) => a > b ? a : b);
     final minVal = values.reduce((a, b) => a < b ? a : b);
+    final chartColor = _variation > 0
+        ? const Color(0xFF2E7D32)
+        : _variation < 0
+            ? Colors.red
+            : Colors.grey;
 
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('R\$ ${(minVal / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
-            Text('R\$ ${(maxVal / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+            Text('R\$ ${(minVal / 100).toStringAsFixed(2)}', style: TextStyle(fontSize: 9, color: chartColor)),
+            Text('R\$ ${(maxVal / 100).toStringAsFixed(2)}', style: TextStyle(fontSize: 9, color: chartColor)),
           ],
         ),
         const SizedBox(height: 4),
         Expanded(
           child: CustomPaint(
             size: Size.infinite,
-            painter: _StartupLineChartPainter(values: values, color: const Color(0xFF2E7D32)),
+            painter: _StartupLineChartPainter(values: values, color: chartColor),
           ),
         ),
         const SizedBox(height: 4),

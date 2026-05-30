@@ -214,6 +214,12 @@ export async function recalculateTokenPrice(startupId: string): Promise<number> 
     currentTokenPriceCents: newPrice,
   });
 
+  // Salva snapshot no histórico de preço (pra gráfico de portfólio)
+  await db.collection("startups").doc(startupId).collection("priceHistory").add({
+    price: newPrice,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
   return newPrice;
 }
 

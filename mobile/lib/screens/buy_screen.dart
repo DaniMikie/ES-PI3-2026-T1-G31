@@ -365,9 +365,8 @@ class _BuyScreenState extends State<BuyScreen> {
     final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
     final offerId = offer['id'] as String? ?? '';
 
-    // Controle de quantidade a comprar (pode ser parcial)
+    // Quantidade fixa — compra o anúncio todo
     int buyQty = qty;
-    final qtyController = TextEditingController(text: qty.toString());
     final senhaController = TextEditingController();
     bool senhaVisivel = false;
 
@@ -417,22 +416,18 @@ class _BuyScreenState extends State<BuyScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Quantidade a comprar
-                      const Text('Quantidade desejada', style: TextStyle(fontWeight: FontWeight.bold)),
+                      // Quantidade (fixa — compra o anúncio todo)
+                      const Text('Quantidade', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: qtyController,
-                        keyboardType: TextInputType.number,
-                        enabled: !loading,
-                        decoration: InputDecoration(
-                          suffixText: 'de $qty disponíveis',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade100,
                         ),
-                        onChanged: (v) {
-                          final parsed = int.tryParse(v) ?? 0;
-                          setDialogState(() => buyQty = parsed.clamp(0, qty));
-                        },
+                        child: Text('$qty tokens', style: const TextStyle(fontSize: 16)),
                       ),
                       const SizedBox(height: 12),
 

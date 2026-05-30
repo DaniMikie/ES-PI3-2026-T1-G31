@@ -1,6 +1,11 @@
 /*
  * Tela Carteira — MesclaInvest
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+ *
+ * Exibe saldo, patrimônio em tokens, gráfico de patrimônio acumulado
+ * (com pontos verdes pra compra e vermelhos pra venda), gráfico de variação
+ * por startup com resultado total em R$ e lucro/prejuízo individual,
+ * lista de investimentos e histórico de transações.
  */
 
 /*
@@ -44,11 +49,16 @@ class _WalletScreenState extends State<WalletScreen> {
   bool _chartLoading = false;
   int _transacoesVisiveis = 5;
 
+  // Estado do gráfico de portfólio
+  List<Map<String, dynamic>> _portfolioLines = [];
+  bool _portfolioLoading = false;
+
   @override
   void initState() {
     super.initState();
     _loadWallet();
     _loadTokenHistory();
+    _loadPortfolioHistory();
   }
 
   String _periodToBackend(String period) {
@@ -723,6 +733,8 @@ class _WalletScreenState extends State<WalletScreen> {
                                   children: [
                                     _buildAnalysis(),
                                     const SizedBox(height: 28),
+                                    _buildPortfolioChart(),
+                                    const SizedBox(height: 28),
                                     _buildInvestments(),
                                     const SizedBox(height: 28),
                                     _buildTransactions(),
@@ -770,43 +782,41 @@ class _WalletScreenState extends State<WalletScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text(
-              'Análise',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2E7D32),
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (!_chartLoading && _chartPoints.isNotEmpty)
+        const Text(
+          'Histórico de operações',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Preço médio dos tokens que você comprou e vendeu ao longo do tempo',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        if (!_chartLoading && _chartPoints.isNotEmpty && _chartPoints.length > 1)
+          Row(
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _chartVariation >= 0
-                      ? const Color(0xFF2E7D32).withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
+                  color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Tooltip(
-                  message: 'Variação no período selecionado',
-                  child: Text(
-                    '${_chartVariation >= 0 ? '+' : ''}${_chartVariation.toStringAsFixed(2)}% no período',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: _chartVariation >= 0
-                          ? const Color(0xFF2E7D32)
-                          : Colors.red,
+                child: Text(
+                  '${_chartVariation >= 0 ? '↑' : '↓'} ${_chartVariation.abs().toStringAsFixed(2)}% de variação',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-                ),
               ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            ],
+          ),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -814,6 +824,7 @@ class _WalletScreenState extends State<WalletScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -862,11 +873,29 @@ class _WalletScreenState extends State<WalletScreen> {
                     : _chartPoints.isEmpty
                         ? const Center(
                             child: Text(
-                              'Sem dados para este período',
+                              'Realize compras ou vendas para visualizar o gráfico',
                               style: TextStyle(color: Colors.grey, fontSize: 13),
+                              textAlign: TextAlign.center,
                             ),
                           )
                         : _buildDynamicChart(),
+              ),
+              const SizedBox(height: 8),
+              // Legenda
+              Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF2E7D32), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  const Text('Compra', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  const SizedBox(width: 12),
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  const Text('Venda/Saque', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  const SizedBox(width: 12),
+                  Container(width: 12, height: 3, decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 4),
+                  const Text('Patrimônio (R\$)', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
               ),
             ],
           ),
@@ -879,40 +908,319 @@ class _WalletScreenState extends State<WalletScreen> {
     final values = _chartPoints
         .map((p) => (p['value'] as num?)?.toDouble() ?? 0)
         .toList();
+    final labels = _chartPoints
+        .map((p) => p['label'] as String? ?? '')
+        .toList();
+    final types = _chartPoints
+        .map((p) => p['type'] as String? ?? 'buy')
+        .toList();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     final minValue = values.reduce((a, b) => a < b ? a : b);
 
+    String formatAxis(double v) {
+      final reais = v / 100;
+      if (reais >= 1000000) return 'R\$ ${(reais / 1000000).toStringAsFixed(1)}M';
+      if (reais >= 1000) return 'R\$ ${(reais / 1000).toStringAsFixed(1)}k';
+      if (reais >= 10) return 'R\$ ${reais.toStringAsFixed(0)}';
+      return 'R\$ ${reais.toStringAsFixed(2)}';
+    }
+
+    // Arredonda eixo Y pra valores mais legíveis
+    double roundedMax = maxValue;
+    double roundedMin = minValue;
+    final reaisMax = maxValue / 100;
+    final reaisMin = minValue / 100;
+    if (reaisMax >= 10) {
+      roundedMax = (reaisMax.ceil()) * 100;
+    }
+    if (reaisMin >= 10) {
+      roundedMin = (reaisMin.floor()) * 100;
+    } else if (reaisMin > 0) {
+      roundedMin = ((reaisMin * 10).floor() / 10) * 100;
+    }
+
+    List<String> xLabels;
+    if (labels.length <= 4) {
+      xLabels = labels;
+    } else {
+      xLabels = [labels.first, labels[labels.length ~/ 2], labels.last];
+    }
+
     return Column(
       children: [
-        // Min/Max referência
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Min: R\$ ${(minValue / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-            Text('Max: R\$ ${(maxValue / 100).toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Gráfico de linhas
         Expanded(
-          child: CustomPaint(
-            size: Size.infinite,
-            painter: _LineChartPainter(values: values, color: const Color(0xFF2E7D32)),
+          child: Row(
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(formatAxis(roundedMax), style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                  if (roundedMax != roundedMin)
+                    Text(formatAxis((roundedMax + roundedMin) / 2), style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                  Text(formatAxis(roundedMin), style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: _LineChartPainter(values: values, types: types, color: const Color(0xFF2E7D32)),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        // Labels
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if (_chartPoints.isNotEmpty)
-              Text(_chartPoints.first['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
-            if (_chartPoints.length > 1)
-              Text(_chartPoints.last['label'] as String? ?? '', style: const TextStyle(fontSize: 9, color: Colors.grey)),
-          ],
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.only(left: 36),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: xLabels.map((l) => Text(l, style: const TextStyle(fontSize: 9, color: Colors.grey))).toList(),
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _loadPortfolioHistory() async {
+    setState(() => _portfolioLoading = true);
+    try {
+      final callable = _functions.httpsCallable('getPortfolioHistory');
+      final result = await callable.call({'period': _periodToBackend(_periodoSelecionado)});
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+      final lines = List<Map<String, dynamic>>.from(
+        (inner['lines'] as List?)?.map((l) => Map<String, dynamic>.from(l as Map)) ?? [],
+      );
+      if (mounted) setState(() { _portfolioLines = lines; _portfolioLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _portfolioLines = []; _portfolioLoading = false; });
+    }
+  }
+
+  Widget _buildPortfolioChart() {
+    if (_portfolioLoading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Color(0xFF2E7D32))));
+    }
+    if (_portfolioLines.isEmpty) return const SizedBox.shrink();
+
+    // Calcula range global pra eixo Y
+    double maxVar = 0;
+    double minVar = 0;
+    List<String> allTimestamps = [];
+    for (final line in _portfolioLines) {
+      final points = List<Map<String, dynamic>>.from(
+        (line['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+      );
+      for (final p in points) {
+        final v = (p['variation'] as num?)?.toDouble() ?? 0;
+        if (v > maxVar) maxVar = v;
+        if (v < minVar) minVar = v;
+      }
+      if (points.length > allTimestamps.length) {
+        allTimestamps = points.map((p) => p['timestamp'] as String? ?? '').toList();
+      }
+    }
+    // Garante margem mínima no eixo Y
+    if (maxVar == 0 && minVar == 0) { maxVar = 5; minVar = -5; }
+    if (maxVar <= 0) maxVar = 2;
+    if (minVar >= 0) minVar = -2;
+
+    // Labels do eixo X (primeiro, meio, último)
+    List<String> xLabels;
+    if (allTimestamps.length <= 3) {
+      xLabels = allTimestamps;
+    } else {
+      xLabels = [allTimestamps.first, allTimestamps[allTimestamps.length ~/ 2], allTimestamps.last];
+    }
+
+    // Calcula lucro/prejuízo em R$ usando _investimentos (fonte confiável)
+    // Fórmula: (preço atual - preço médio de compra) × quantidade de tokens
+    // Positivo = lucro, Negativo = prejuízo
+    double totalProfitCents = 0;
+    final profitByStartup = <String, double>{};
+    for (final inv in _investimentos) {
+      final startupId = inv['startupId'] as String? ?? '';
+      final quantity = (inv['quantity'] as num?)?.toDouble() ?? 0;
+      final totalInvested = (inv['totalInvestedCents'] as num?)?.toDouble() ?? 0;
+      final currentPrice = (inv['currentTokenPriceCents'] as num?)?.toDouble() ?? 0;
+      final avgBuy = quantity > 0 ? totalInvested / quantity : 0.0;
+      final profit = (currentPrice - avgBuy) * quantity;
+      profitByStartup[startupId] = profit;
+      totalProfitCents += profit;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Variação por startup', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+        const SizedBox(height: 4),
+        const Text('Lucro ou prejuízo de cada investimento ao longo do tempo', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 8),
+        // Resultado total
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: totalProfitCents >= 0 ? const Color(0xFF2E7D32).withAlpha(25) : Colors.red.withAlpha(25),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                totalProfitCents >= 0 ? Icons.trending_up : Icons.trending_down,
+                size: 16,
+                color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Colors.red,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Resultado total: ${totalProfitCents >= 0 ? '+' : '-'}R\$ ${(totalProfitCents.abs() / 100).toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 140,
+                child: Row(
+                  children: [
+                    // Eixo Y (percentuais)
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('+${maxVar.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                        const Text('0%', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                        Text('${minVar.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(width: 6),
+                    // Gráfico
+                    Expanded(
+                      child: CustomPaint(
+                        size: Size.infinite,
+                        painter: _MultiLineChartPainter(lines: _portfolioLines),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // === Labels de % ao lado direito do gráfico ===
+                    // Cada label fica na mesma altura Y onde a linha termina.
+                    // Usa LayoutBuilder pra saber a altura disponível e calcular
+                    // a posição exata de cada label com a mesma fórmula do painter.
+                    // Se dois labels ficam muito perto, empurra o de baixo pra não sobrepor.
+                    SizedBox(
+                      width: 42,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final chartHeight = constraints.maxHeight;
+                          final range = maxVar - minVar;
+
+                          // Calcula posição Y de cada label baseado na variação final
+                          final items = <_PortfolioLabel>[];
+                          for (final line in _portfolioLines) {
+                            final color = _parseColor(line['color'] as String? ?? '#2E7D32');
+                            final points = List<Map<String, dynamic>>.from(
+                              (line['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+                            );
+                            final lastV = points.isNotEmpty ? (points.last['variation'] as num?)?.toDouble() ?? 0 : 0.0;
+                            // Usa a mesma fórmula yForValue do painter pra alinhar
+                            final chartTop = chartHeight * 0.05;
+                            final chartBottom = chartHeight * 0.95;
+                            final cH = chartBottom - chartTop;
+                            final y = chartBottom - ((lastV - minVar) / range) * cH;
+                            items.add(_PortfolioLabel(value: lastV, y: y, color: color));
+                          }
+
+                          // Ordena por posição Y (de cima pra baixo)
+                          // e garante espaçamento mínimo de 14px entre labels
+                          items.sort((a, b) => a.y.compareTo(b.y));
+                          const minSpacing = 14.0;
+                          for (int i = 1; i < items.length; i++) {
+                            if (items[i].y - items[i - 1].y < minSpacing) {
+                              items[i] = _PortfolioLabel(
+                                value: items[i].value,
+                                y: items[i - 1].y + minSpacing,
+                                color: items[i].color,
+                              );
+                            }
+                          }
+
+                          return Stack(
+                            children: items.map((item) {
+                              return Positioned(
+                                top: (item.y - 6).clamp(0, chartHeight - 14),
+                                left: 0,
+                                child: Text(
+                                  '${item.value >= 0 ? '+' : ''}${item.value.toStringAsFixed(1)}%',
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: item.color),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Eixo X (timestamps)
+              if (xLabels.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 36, top: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: xLabels.map((l) => Text(l, style: const TextStyle(fontSize: 9, color: Colors.grey))).toList(),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              // Legenda
+              Wrap(
+                spacing: 16,
+                runSpacing: 6,
+                children: _portfolioLines.map((line) {
+                  final name = line['startupName'] as String? ?? '';
+                  final color = _parseColor(line['color'] as String? ?? '#2E7D32');
+                  final points = List<Map<String, dynamic>>.from(
+                    (line['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+                  );
+                  final lastVariation = points.isNotEmpty ? (points.last['variation'] as num?)?.toDouble() ?? 0 : 0.0;
+                  final startupId = line['startupId'] as String? ?? '';
+                  final profitCents = profitByStartup[startupId] ?? 0;
+                  final profitStr = '${profitCents >= 0 ? '+' : '-'}R\$ ${(profitCents.abs() / 100).toStringAsFixed(2)}';
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 10, height: 3, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 4),
+                      Text('$name ', style: const TextStyle(fontSize: 10, color: Colors.black87)),
+                      Text('$profitStr (${lastVariation >= 0 ? '+' : ''}${lastVariation.toStringAsFixed(1)}%)',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: lastVariation >= 0 ? const Color(0xFF2E7D32) : Colors.red)),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _parseColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
   }
 
   Widget _buildInvestments() {
@@ -1181,19 +1489,42 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 }
 
+/// Painter do gráfico de patrimônio (linha única).
+/// Mostra a evolução do valor total dos tokens do usuário ao longo do tempo.
+/// Pontos verdes = compras (patrimônio subiu), pontos vermelhos = vendas (patrimônio desceu).
 class _LineChartPainter extends CustomPainter {
-  final List<double> values;
-  final Color color;
+  final List<double> values;   // Valores do patrimônio em cada ponto (em centavos)
+  final List<String> types;    // Tipo de cada ponto: "buy" ou "sell"
+  final Color color;           // Cor base da linha (verde)
 
-  _LineChartPainter({required this.values, required this.color});
+  _LineChartPainter({required this.values, this.types = const [], required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (values.length < 2) return;
+    if (values.length < 2) return;  // Precisa de pelo menos 2 pontos pra desenhar linha
 
+    // Encontra valor máximo e mínimo pra escalar o gráfico
     final maxVal = values.reduce((a, b) => a > b ? a : b);
     final minVal = values.reduce((a, b) => a < b ? a : b);
     final range = maxVal - minVal;
+
+    // Linhas de grade horizontais tracejadas (referência visual)
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE0E0E0)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    // Posições das 3 linhas de grade: topo (5%), meio (47.5%), base (90%)
+    final gridPositions = [0.05, 0.475, 0.9];
+    for (final pos in gridPositions) {
+      final y = size.height * pos;
+      final gridPath = Path();
+      for (double x = 0; x < size.width; x += 6) {
+        gridPath.moveTo(x, y);
+        gridPath.lineTo(x + 3, y);
+      }
+      canvas.drawPath(gridPath, gridPaint);
+    }
 
     final linePaint = Paint()
       ..color = color
@@ -1201,24 +1532,32 @@ class _LineChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
+    // Preenchimento gradiente abaixo da linha (vai sumindo pra baixo)
     final fillPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+        colors: [color.withAlpha(51), color.withAlpha(0)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    final dotPaint = Paint()
-      ..color = color
+    final dotBorderPaint = Paint()
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
 
     final path = Path();
     final fillPath = Path();
+    final points = <Offset>[];
 
     for (int i = 0; i < values.length; i++) {
+      // X: distribui igualmente ao longo da largura
       final x = (i / (values.length - 1)) * size.width;
+      // Y: proporção do valor dentro do range (0 = mínimo, 1 = máximo)
+      // Se range é 0 (todos valores iguais), coloca no meio (0.5)
       final proportion = range > 0 ? (values[i] - minVal) / range : 0.5;
+      // Converte proporção pra posição Y (inverte pq Y cresce pra baixo)
+      // Usa 85% da altura com 5% de margem embaixo
       final y = size.height - (proportion * size.height * 0.85) - (size.height * 0.05);
+      points.add(Offset(x, y));
 
       if (i == 0) {
         path.moveTo(x, y);
@@ -1228,20 +1567,194 @@ class _LineChartPainter extends CustomPainter {
         path.lineTo(x, y);
         fillPath.lineTo(x, y);
       }
-
-      // Ponto no último valor
-      if (i == values.length - 1) {
-        canvas.drawCircle(Offset(x, y), 4, dotPaint);
-      }
     }
 
-    // Preenche área abaixo da linha
+    // Fecha e preenche a área abaixo da linha
     fillPath.lineTo(size.width, size.height);
     fillPath.close();
     canvas.drawPath(fillPath, fillPaint);
 
-    // Desenha a linha
+    // Desenha a linha por cima
     canvas.drawPath(path, linePaint);
+
+    // Desenha ponto em cada transação
+    // Verde = compra (patrimônio subiu), Vermelho = venda (patrimônio desceu)
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      final type = i < types.length ? types[i] : 'buy';
+      final pointColor = type == 'sell' ? Colors.red : color;
+      final pointPaint = Paint()..color = pointColor..style = PaintingStyle.fill;
+      // Borda branca + ponto colorido (efeito de destaque)
+      canvas.drawCircle(point, 5, dotBorderPaint);
+      canvas.drawCircle(point, 3.5, pointPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+/// Helper pra posicionar os labels de % ao lado direito do gráfico.
+/// Cada label fica na mesma altura Y onde a linha da startup termina,
+/// com espaçamento mínimo pra evitar sobreposição de texto.
+class _PortfolioLabel {
+  final double value;
+  final double y;
+  final Color color;
+  const _PortfolioLabel({required this.value, required this.y, required this.color});
+}
+
+/// Painter do gráfico multi-linha de variação por startup.
+/// Cada linha representa uma startup com cor diferente.
+/// Desenha: linhas de grade tracejadas (max, 0%, min), gradient fill,
+/// pontos nos vértices e destaque no primeiro/último ponto.
+class _MultiLineChartPainter extends CustomPainter {
+  final List<Map<String, dynamic>> lines;
+
+  _MultiLineChartPainter({required this.lines});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (lines.isEmpty) return;
+
+    // === PASSO 1: Encontrar o range global ===
+    // Precisa saber o maior e menor valor de variação entre TODAS as startups
+    // pra saber como escalar o gráfico (onde fica o topo e onde fica a base)
+    double maxVar = 0;
+    double minVar = 0;
+    for (final line in lines) {
+      final points = List<Map<String, dynamic>>.from(
+        (line['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+      );
+      for (final p in points) {
+        final v = (p['variation'] as num?)?.toDouble() ?? 0;
+        if (v > maxVar) maxVar = v;
+        if (v < minVar) minVar = v;
+      }
+    }
+
+    // Se tudo é zero, cria uma margem artificial pra não dividir por zero
+    if (maxVar == 0 && minVar == 0) { maxVar = 5; minVar = -5; }
+    if (maxVar <= 0) maxVar = 2;
+    if (minVar >= 0) minVar = -2;
+
+    final range = maxVar - minVar;
+    if (range == 0) return;
+
+    // === PASSO 2: Definir área útil do gráfico ===
+    // Deixa 5% de margem em cima e embaixo pra não colar na borda
+    final chartTop = size.height * 0.05;
+    final chartBottom = size.height * 0.95;
+    final chartHeight = chartBottom - chartTop;
+
+    // Converte um valor de variação (%) pra posição Y no canvas
+    // Quanto maior o valor, mais pra cima (Y menor, pq Y cresce pra baixo)
+    double yForValue(double v) {
+      return chartBottom - ((v - minVar) / range) * chartHeight;
+    }
+
+    // === PASSO 3: Linhas de grade tracejadas ===
+    // Desenha 3 linhas horizontais pontilhadas: no máximo, no 0% e no mínimo
+    // Ajuda o usuário a ter referência visual de onde está cada valor
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE0E0E0)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    for (final gridVal in [maxVar, 0.0, minVar]) {
+      final y = yForValue(gridVal);
+      // Cria tracejado manualmente (segmentos de 3px com espaço de 3px)
+      final gridPath = Path();
+      for (double x = 0; x < size.width; x += 6) {
+        gridPath.moveTo(x, y);
+        gridPath.lineTo(x + 3, y);
+      }
+      canvas.drawPath(gridPath, gridPaint);
+    }
+
+    // === PASSO 4: Desenhar cada linha (uma por startup) ===
+    for (final line in lines) {
+      final points = List<Map<String, dynamic>>.from(
+        (line['points'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
+      );
+      if (points.length < 2) continue;
+
+      // Converte a cor hex (#2E7D32) pra objeto Color do Flutter
+      final colorHex = (line['color'] as String? ?? '#2E7D32').replaceAll('#', '');
+      final color = Color(int.parse('FF$colorHex', radix: 16));
+
+      // Paint da linha principal
+      final linePaint = Paint()
+        ..color = color
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      // Paint dos pontos (bolinhas) em cada vértice
+      final dotPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+
+      // Borda branca ao redor dos pontos (pra destacar do fundo)
+      final dotBorderPaint = Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..style = PaintingStyle.fill;
+
+      // Gradient fill: cor semi-transparente que vai sumindo de cima pra baixo
+      // Dá efeito visual de "área preenchida" abaixo da linha
+      final fillPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withAlpha(38), color.withAlpha(0)],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+      final path = Path();       // Caminho da linha
+      final fillPath = Path();   // Caminho do preenchimento (área abaixo)
+
+      // Percorre cada ponto e calcula posição X,Y no canvas
+      for (int i = 0; i < points.length; i++) {
+        final v = (points[i]['variation'] as num?)?.toDouble() ?? 0;
+        // X: distribui igualmente ao longo da largura
+        final x = (i / (points.length - 1)) * size.width;
+        // Y: converte o valor de variação pra posição vertical
+        final y = yForValue(v);
+
+        if (i == 0) {
+          path.moveTo(x, y);
+          fillPath.moveTo(x, chartBottom);
+          fillPath.lineTo(x, y);
+        } else {
+          path.lineTo(x, y);
+          fillPath.lineTo(x, y);
+        }
+
+        // Ponto em cada vértice
+        // Primeiro e último ponto são maiores (4.5px com borda branca)
+        // Pontos do meio são menores (2.5px sem borda)
+        if (i == 0 || i == points.length - 1) {
+          canvas.drawCircle(Offset(x, y), 4.5, dotBorderPaint);
+          canvas.drawCircle(Offset(x, y), 3, dotPaint);
+        } else {
+          canvas.drawCircle(Offset(x, y), 2.5, dotPaint);
+        }
+      }
+
+      // Fecha o path do fill (desce até a base e volta pro início)
+      fillPath.lineTo(size.width, chartBottom);
+      fillPath.close();
+      canvas.drawPath(fillPath, fillPaint);
+
+      // Desenha a linha por cima do fill
+      canvas.drawPath(path, linePaint);
+
+      // Ponto final destacado (último valor da linha)
+      final lastV = (points.last['variation'] as num?)?.toDouble() ?? 0;
+      final lastX = size.width;
+      final lastY = yForValue(lastV);
+      canvas.drawCircle(Offset(lastX, lastY), 4.5, dotBorderPaint);
+      canvas.drawCircle(Offset(lastX, lastY), 3, dotPaint);
+    }
   }
 
   @override

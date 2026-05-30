@@ -26,6 +26,7 @@ class _MarketScreenState extends State<MarketScreen> {
   List<Map<String, dynamic>> _startups = [];
   List<String> _myStartupIds = [];
   List<Map<String, dynamic>> _myOffers = [];
+  List<String> _startupsWithOffers = [];
   bool _loading = true;
   bool _loadingMyOffers = false;
   String _searchQuery = '';
@@ -55,7 +56,17 @@ class _MarketScreenState extends State<MarketScreen> {
       );
       final myIds = positions.map((p) => p['startupId'] as String).toList();
 
-      if (mounted) setState(() { _startups = startups; _myStartupIds = myIds; _loading = false; });
+      // Carrega IDs de startups com ofertas ativas
+      List<String> startupsWithOffers = [];
+      try {
+        final offersCallable = _functions.httpsCallable('listStartupsWithOffers');
+        final offersResult = await offersCallable.call();
+        final offersData = Map<String, dynamic>.from(offersResult.data as Map);
+        final offersInner = Map<String, dynamic>.from(offersData['data'] as Map? ?? offersData);
+        startupsWithOffers = List<String>.from(offersInner['startupIds'] as List? ?? []);
+      } catch (_) {}
+
+      if (mounted) setState(() { _startups = startups; _myStartupIds = myIds; _startupsWithOffers = startupsWithOffers; _loading = false; });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -229,7 +240,9 @@ class _MarketScreenState extends State<MarketScreen> {
   List<Map<String, dynamic>> get _filteredStartups {
     final base = _mode == MarketMode.sell
         ? _startups.where((s) => _myStartupIds.contains(s['id'])).toList()
-        : _startups;
+        : _mode == MarketMode.buy
+            ? _startups.where((s) => _startupsWithOffers.contains(s['id'])).toList()
+            : _startups;
     if (_searchQuery.isEmpty) return base;
     final q = _searchQuery.toLowerCase();
     return base.where((s) {
@@ -619,21 +632,38 @@ class _MarketScreenState extends State<MarketScreen> {
                     ],
                   ),
                 ),
-                // Botão cancelar
-                GestureDetector(
-                  onTap: () => _confirmCancelOffer(offerId, startupName, qty, priceCents),
-                  child: Container(
+                // Botão cancelar (só ativas) ou badge de status
+                if (status == 'active')
+                  GestureDetector(
+                    onTap: () => _confirmCancelOffer(offerId, startupName, qty, priceCents),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.red.shade300),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.red.shade300),
+                      color: status == 'sold' ? const Color(0xFF2E7D32).withOpacity(0.1) : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Cancelar',
-                      style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 13),
+                      status == 'sold' ? 'Vendido' : 'Cancelado',
+                      style: TextStyle(
+                        color: status == 'sold' ? const Color(0xFF2E7D32) : Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );
