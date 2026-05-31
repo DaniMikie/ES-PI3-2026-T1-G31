@@ -1,14 +1,15 @@
-/**
- * Tela Início — MesclaInvest
- * Autor: Rafaela Jacobsen Braga | RA: 25004280
- * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
- */
+/*
+---------- Tela de Início ----------
+- Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'startup_details_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 
 // ── Tela Início ─────────────────────────────────────────────────
@@ -325,7 +326,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: InputDecoration(
                   hintText: 'Buscar startups',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                  suffixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SvgPicture.asset(
+                      'assets/icons/magnifier.svg',
+                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                      width: 24,
+                      height: 24,
+                    ),
+                  ),
                   filled: true,
                   fillColor: Colors.grey.shade100,
                   enabledBorder: OutlineInputBorder(
@@ -389,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    Text(_error!, style: const TextStyle(color: Color(0xFFB30B0E))),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _loadStartups,

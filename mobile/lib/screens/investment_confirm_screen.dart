@@ -1,12 +1,13 @@
-/**
- * Tela Confirmação de Investimento (com modal de autenticação) — MesclaInvest
- * Autor: Rafaela Jacobsen Braga | RA: 25004280
- * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
- */
+/*
+---------- Tela de Confirmação de Investimento ----------
+- Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InvestmentConfirmScreen extends StatefulWidget {
   final String startupId;
@@ -84,7 +85,7 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Senha incorreta.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFB30B0E),
         ),
       );
     } on FirebaseFunctionsException catch (e) {
@@ -96,7 +97,7 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message ?? 'Saldo insuficiente.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFB30B0E),
         ),
       );
     } catch (e) {
@@ -105,7 +106,7 @@ class _InvestmentConfirmScreenState extends State<InvestmentConfirmScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Erro inesperado ao confirmar investimento.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFB30B0E),
         ),
       );
     }
@@ -356,18 +357,30 @@ class _ModalAutenticacaoState extends State<_ModalAutenticacao> {
                 enabled: !widget.loading,
                 obscureText: !_senhaVisivel,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SvgPicture.asset(
+                      'assets/icons/password.svg',
+                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                      width: 24,
+                      height: 24,
+                    ),
+                  ),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      color: Colors.grey,
+                    icon: SvgPicture.asset(
+                      _senhaVisivel
+                          ? 'assets/icons/eye_on.svg'
+                          : 'assets/icons/eye_off.svg',
+                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                      width: 24,
+                      height: 24,
                     ),
                     onPressed: widget.loading ? null : () => setState(() => _senhaVisivel = !_senhaVisivel),
                   ),
                   enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade400)),
                   focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
-                  errorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.red)),
-                  focusedErrorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.red, width: 2)),
+                  errorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFB30B0E))),
+                  focusedErrorBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFB30B0E), width: 2)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Informe sua senha';

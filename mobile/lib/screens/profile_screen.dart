@@ -1,9 +1,9 @@
-/**
- * Tela Perfil - MesclaInvest
- * Autor: Rafaela Jacobsen Braga | RA: 25004280
- * Autor: Daniela Mikie Kikuchi Goncalves | RA: 25003068
- * Ajuste: Ana Luísa Maso Mafra | RA: 25007997
- */
+/*
+---------- Tela de Perfil do Usuário ----------
+- Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
+- Colaboradora/Correções: Daniela Mikie Kikuchi Goncalves | RA: 25003068
+- Ajustes Gerais: Ana Luísa Maso Mafra | RA: 25007997
+*/
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
                   TextField(controller: senhaAtualController, obscureText: true, decoration: const InputDecoration(labelText: 'Senha atual')),
                   const SizedBox(height: 12),
@@ -108,7 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     await user.updatePassword(novaSenhaController.text);
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF2E7D32)));
                   } on FirebaseAuthException catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.code == 'wrong-password' ? 'Senha atual incorreta' : 'Erro ao alterar senha'), backgroundColor: Colors.red));
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.code == 'wrong-password' ? 'Senha atual incorreta' : 'Erro ao alterar senha'), backgroundColor: Color(0xFFB30B0E)));
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('E-mail enviado para $email'), backgroundColor: const Color(0xFF2E7D32)));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao enviar e-mail'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao enviar e-mail'), backgroundColor: Color(0xFFB30B0E)));
     }
   }
 
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados atualizados!'), backgroundColor: Color(0xFF2E7D32)));
                 }
               } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao atualizar'), backgroundColor: Colors.red));
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro ao atualizar'), backgroundColor: Color(0xFFB30B0E)));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
@@ -231,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     width: double.infinity, padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                    child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                   ),
                 TextField(
                   controller: codeController,
@@ -261,7 +261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFB30B0E)),
                 child: loading
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Desativar', style: TextStyle(color: Colors.white)),

@@ -1,6 +1,9 @@
-// Autora: Ana Luisa Maso Mafra - RA: 25007997
-// Integracao: Daniela Mikie Kikuchi Goncalves - RA: 25003068
-// Modificao: Felipe Nasser Coelho Moussa - RA: 25004922
+/*
+---------- Tela de Balcão ----------
+- Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
+- Integração: Daniela Mikie Kikuchi Goncalves | RA: 25003068
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -8,6 +11,7 @@ import 'buy_screen.dart';
 import 'sell_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 // Enum para os três modos do balcão
 enum MarketMode { buy, sell, myOffers }
@@ -87,7 +91,7 @@ class _MarketScreenState extends State<MarketScreen> {
       if (mounted) {
         setState(() => _loadingMyOffers = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao carregar anúncios: $e"), backgroundColor: Colors.red),
+          SnackBar(content: Text("Erro ao carregar anúncios: $e"), backgroundColor: Color(0xFFB30B0E)),
         );
       }
     }
@@ -337,7 +341,15 @@ class _MarketScreenState extends State<MarketScreen> {
                   decoration: InputDecoration(
                     hintText: 'Buscar startups',
                     hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                    suffixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SvgPicture.asset(
+                        'assets/icons/magnifier.svg',
+                        colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                        width: 24,
+                        height: 24,
+                      ),
+                    ),
                     filled: true,
                     fillColor: Colors.grey.shade100,
                     enabledBorder: OutlineInputBorder(
@@ -639,12 +651,12 @@ class _MarketScreenState extends State<MarketScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.red.shade300),
+                        border: Border.all(color: Colors.red.shade500),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         'Cancelar',
-                        style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(color: Color(0xFFB30B0E), fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
                   )
@@ -706,7 +718,7 @@ class _MarketScreenState extends State<MarketScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
+              backgroundColor: Color(0xFFB30B0E),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
@@ -733,13 +745,13 @@ class _MarketScreenState extends State<MarketScreen> {
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Erro ao cancelar'), backgroundColor: Colors.red),
+          SnackBar(content: Text(e.message ?? 'Erro ao cancelar'), backgroundColor: Color(0xFFB30B0E)),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro inesperado ao cancelar'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Erro inesperado ao cancelar'), backgroundColor: Color(0xFFB30B0E)),
         );
       }
     }

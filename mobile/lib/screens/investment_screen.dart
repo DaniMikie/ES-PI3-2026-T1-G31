@@ -1,12 +1,14 @@
-/**
- * Tela Aplicar Investimento — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- */
+/*
+---------- Tela de Aplicação de Investimento ----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InvestmentScreen extends StatefulWidget {
   final String startupId;
@@ -49,13 +51,13 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
     if (_formKey.currentState!.validate()) {
       if (_quantidadeTokens <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Informe a quantidade de tokens'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Informe a quantidade de tokens'), backgroundColor: Color(0xFFB30B0E)),
         );
         return;
       }
       if (_quantidadeTokens > widget.tokensDisponiveis) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Maximo disponivel: ${widget.tokensDisponiveis} tokens'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Maximo disponivel: ${widget.tokensDisponiveis} tokens'), backgroundColor: Color(0xFFB30B0E)),
         );
         return;
       }
@@ -72,7 +74,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
         if (balanceCents < costCents) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Colors.red),
+              const SnackBar(content: Text('Saldo insuficiente. Consulte sua carteira.'), backgroundColor: Color(0xFFB30B0E)),
             );
           }
           return;
@@ -105,14 +107,22 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
                   TextField(
                     controller: senhaController,
                     obscureText: true,
                     enabled: !loading,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.lock_outline),
+                    decoration:  InputDecoration(
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/password.svg',
+                          colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       hintText: '••••••••',
                     ),
                   ),
@@ -160,7 +170,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                         _showSaldoInsuficiente(e.message ?? 'Saldo insuficiente');
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Colors.red),
+                          SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Color(0xFFB30B0E)),
                         );
                         Navigator.pop(context);
                       }
@@ -239,7 +249,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, size: 22)),
+                          GestureDetector(onTap: () => Navigator.pop(context), child: Icon(Icons.adaptive.arrow_back, size: 22)),
                           const SizedBox(width: 8),
                           Text(widget.startupNome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
