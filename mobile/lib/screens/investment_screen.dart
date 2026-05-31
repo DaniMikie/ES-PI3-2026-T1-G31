@@ -1,6 +1,6 @@
 /*
 ---------- Tela de Aplicação de Investimento ----------
-- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+- Autor Principal: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 
 import 'package:flutter/material.dart';
