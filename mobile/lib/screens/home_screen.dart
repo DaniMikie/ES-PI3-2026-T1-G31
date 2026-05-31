@@ -24,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _functions = FirebaseFunctions.instance;
   final _searchController = TextEditingController();
 
-  // List<Map<String, dynamic>> _startups = [];
   List<Map<String, dynamic>> _startupsFiltradas = [];
   bool _loading = true;
   String? _error;
@@ -78,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          // _startups = startups;
           _startupsFiltradas = startups;
           _loading = false;
         });

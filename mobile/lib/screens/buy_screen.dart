@@ -222,7 +222,6 @@ class _BuyScreenState extends State<BuyScreen> {
                   separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final offer = _offers[index];
-                    // final offerId = offer['id'] as String? ?? '';
                     final priceCents = offer['priceCents'] is num ? (offer['priceCents'] as num).toInt() : 0;
                     final pricePerToken = priceCents / 100;
                     final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
