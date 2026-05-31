@@ -1,10 +1,10 @@
-/*Handler: withdrawCredits — permite o usuário retirar saldo fictício da carteira
+/*Handler de users: withdrawCredits — permite o usuário retirar saldo fictício da carteira
 Autor: Ana Luísa Maso Mafra | RA: 25007997
 */
 
 /*
 O Flutter chama essa function quando o usuário confirma o saque.
-Valida saldo suficiente, subtrai do balanceCents e retorna o novo saldo.
+Valida saldo suficiente, se suficiente subtrai do balanceCents e retorna o novo saldo.
 A senha é verificada via Firebase Auth (reautenticação feita no client).
 */
 
@@ -69,9 +69,6 @@ export const withdrawCredits = onCall(async (request) => {
     transaction.update(userRef, { balanceCents: updated });
 
     // Registra a transação no histórico do usuário
-    // Correção: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-    // Alterado de db.collection("transactions") para subcoleção users/{uid}/transactions
-    // para que o listTransactions encontre o registro corretamente.
     const txRef = db.collection("users").doc(user.uid).collection("transactions").doc();
     transaction.set(txRef, {
       type: "withdrawal",
