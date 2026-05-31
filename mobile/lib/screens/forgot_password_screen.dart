@@ -1,10 +1,13 @@
-/**
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
- */
+/*
+---------- Tela de Recuperação de Senha ----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -87,10 +90,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Digite seu email',
                       hintText: 'seuemail@exemplo.com',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/email.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       enabledBorder: UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.grey),
                       ),
@@ -98,10 +109,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
                       ),
                       errorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
+                        borderSide: BorderSide(color: Color(0xFFB30B0E)),
                       ),
                       focusedErrorBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red, width: 2),
+                        borderSide: BorderSide(color: Color(0xFFB30B0E), width: 2),
                       ),
                     ),
                     validator: (value) {

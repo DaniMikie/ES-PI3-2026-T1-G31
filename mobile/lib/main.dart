@@ -1,8 +1,8 @@
-/**
- * Conexão do flutter com firebase
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
- */
+/*
+---------- Main (Ponto de Execução e Configuração do App) ----------
+- Autor Principal: Felipe Nasser Coelho Moussa | RA: 25004922
+- Conexão do flutter com firebase: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';

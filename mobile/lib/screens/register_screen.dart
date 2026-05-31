@@ -1,7 +1,7 @@
-/**
- * Tela de Cadastro — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- */
+/*
+---------- Tela de Criar Conta ----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -182,9 +182,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       decoration: BoxDecoration(
                         color: Colors.red.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
+                        border: Border.all(color: Colors.red.shade500),
                       ),
-                      child: Text(_formError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      child: Text(_formError!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
                   ],
                   const SizedBox(height: 32),

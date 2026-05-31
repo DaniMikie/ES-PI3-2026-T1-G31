@@ -1,10 +1,8 @@
-/**
- * Tela de Configuração TOTP (2FA) — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- *
- * Mostra QR code para escanear no Google Authenticator
- * e campo para digitar o código de verificação.
- */
+/*
+---------- Tela de Configuração de TOTP (2FA) ----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+- Mostra QR code para escanear no Google Authenticator e campo para digitar o código de verificação: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -163,7 +161,7 @@ class _TotpSetupScreenState extends State<TotpSetupScreen> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      child: Text(_error!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
 
                   TextField(

@@ -1,6 +1,7 @@
-/**
- * Autor: Felipe Nasser Coelho Moussa | RA: 25004922
- */
+/*
+---------- Tela com Barra Inferior de Menus ----------
+- Autor Principal: Felipe Nasser Coelho Moussa | RA: 25004922
+*/
 
 import 'package:flutter/material.dart';
 import 'home_screen.dart';

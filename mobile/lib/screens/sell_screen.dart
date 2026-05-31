@@ -1,10 +1,14 @@
-// Autora: Ana Luisa Maso Mafra - RA: 25007997
-// Integracao: Daniela Mikie Kikuchi Goncalves - RA: 25003068
+/*
+---------- Tela de Venda de Tokens ----------
+- Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
+- Integração: Daniela Mikie Kikuchi Goncalves | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'startup_details_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SellScreen extends StatefulWidget {
   final String startupId;
@@ -313,7 +317,7 @@ class _SellScreenState extends State<SellScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Você possui apenas $_myTokens tokens disponíveis'),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(0xFFB30B0E),
           ),
         );
       }
@@ -322,7 +326,7 @@ class _SellScreenState extends State<SellScreen> {
     if (_customPrice <= 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Informe um preço válido por token'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Informe um preço válido por token'), backgroundColor: Color(0xFFB30B0E)),
         );
       }
       return;
@@ -378,7 +382,7 @@ class _SellScreenState extends State<SellScreen> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
                   TextField(
                     controller: senhaController,
@@ -387,9 +391,24 @@ class _SellScreenState extends State<SellScreen> {
                     decoration: InputDecoration(
                       hintText: '••••••••',
                       hintStyle: TextStyle(color: Colors.grey.shade400),
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/password.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
                       suffixIcon: IconButton(
-                        icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        icon: SvgPicture.asset(
+                          senhaVisivel
+                              ? 'assets/icons/eye_on.svg'
+                              : 'assets/icons/eye_off.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
                         onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                       ),
                       enabledBorder: UnderlineInputBorder(

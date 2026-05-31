@@ -1,10 +1,14 @@
-// Autora: Ana Luisa Maso Mafra - RA: 25007997
-// Integracao: Daniela Mikie Kikuchi Goncalves - RA: 25003068
+/*
+---------- Tela de Compra de Tokens ----------
+- Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
+- Integração: Daniela Mikie Kikuchi Goncalves | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'startup_details_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class BuyScreen extends StatefulWidget {
   final String startupId;
@@ -125,7 +129,6 @@ class _BuyScreenState extends State<BuyScreen> {
                               'Ver ofertas disponíveis',
                               style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13),
                             ),
-                            Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withOpacity(0.7)),
                           ],
                         ),
                         const SizedBox(height: 2),
@@ -327,7 +330,12 @@ class _BuyScreenState extends State<BuyScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Row(children: [
-                                  Icon(Icons.person_outline, size: 14, color: Colors.grey.shade500),
+                                  SvgPicture.asset(
+                                    'assets/icons/person.svg',
+                                    colorFilter: ColorFilter.mode(Colors.grey.shade500, BlendMode.srcIn),
+                                    width: 14,
+                                    height: 14,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(sellerName, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                                 ]),
@@ -452,7 +460,7 @@ class _BuyScreenState extends State<BuyScreen> {
                           padding: const EdgeInsets.all(10),
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                          child: Text(erro!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                          child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                         ),
                       TextField(
                         controller: senhaController,
@@ -461,9 +469,24 @@ class _BuyScreenState extends State<BuyScreen> {
                         decoration: InputDecoration(
                           hintText: '••••••••',
                           hintStyle: TextStyle(color: Colors.grey.shade400),
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          prefixIcon: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SvgPicture.asset(
+                              'assets/icons/password.svg',
+                              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                              width: 24,
+                              height: 24,
+                            ),
+                          ),
                           suffixIcon: IconButton(
-                            icon: Icon(senhaVisivel ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                            icon: SvgPicture.asset(
+                              senhaVisivel
+                                  ? 'assets/icons/eye_on.svg'
+                                  : 'assets/icons/eye_off.svg',
+                              colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                              width: 24,
+                              height: 24,
+                            ),
                             onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                           ),
                           enabledBorder: UnderlineInputBorder(
@@ -519,7 +542,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                   _showInsuficiente();
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Colors.red),
+                                    SnackBar(content: Text(e.message ?? 'Erro na compra'), backgroundColor: Color(0xFFB30B0E)),
                                   );
                                 }
                               }

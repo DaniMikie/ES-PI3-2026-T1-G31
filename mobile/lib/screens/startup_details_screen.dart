@@ -1,19 +1,19 @@
 /*
- * Tela de Detalhes da Startup — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- * Alterações: Rafaela Jacobsen | RA: 25004280
- * Ajustes: Felipe Nasser Coelho Moussa | RA: 25004922
- *
- * Gráfico de valorização com cor dinâmica (verde/vermelho/cinza)
- * conforme variação no período — Daniela Mikie | RA: 25003068
- */
+---------- Tela de Detalhes da Startup -----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+- Ajustes Gerais: Rafaela Jacobsen | RA: 25004280
+- Modificações de Design/Funções Adicionais: Felipe Nasser Coelho Moussa | RA: 25004922
+- Gráfico de valorização com cor dinâmica (verde/vermelho/cinza) conforme variação no período — Daniela Mikie | RA: 25003068
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'document_webview_screen.dart';
 import 'investment_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
   final String startupId;
@@ -34,7 +34,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
   Map<String, dynamic>? _startup;
   bool _loading = true;
   String? _error;
-  int _tabIndex = 0; // 0 = A Startup, 1 = Adquirir tokens
+  int _tabIndex = 0; // 0 = Startup, 1 = Adquirir tokens, 2 = Perguntas, 3 = Novidades
 
   @override
   void initState() {
@@ -168,7 +168,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                       ),
                       child: Text(
                         erro!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                        style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13),
                       ),
                     ),
                   if (!pedindoSenha)
@@ -189,9 +189,17 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                       controller: senhaController,
                       obscureText: true,
                       enabled: !loading,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Sua senha',
-                        prefixIcon: Icon(Icons.lock_outline),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: SvgPicture.asset(
+                            'assets/icons/password.svg',
+                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -353,7 +361,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
                     content: Text('Erro ao enviar pergunta'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: Color(0xFFB30B0E),
                   ),
                 );
               }
@@ -403,10 +411,21 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Não foi possível abrir o vídeo'),
-        backgroundColor: Colors.red,
+        backgroundColor: Color(0xFFB30B0E),
       ),
     );
   }
+
+  List<Map<String, dynamic>> _documentLinks() {
+    final rawDocs = _startup?['documentLink'];
+    if (rawDocs is! List) return [];
+    return rawDocs
+        .whereType<Map>()
+        .map((d) => Map<String, dynamic>.from(d))
+        .where((d) => (d['url'] as String?)?.isNotEmpty == true)
+        .toList();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -443,9 +462,10 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               // Header
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, size: 22),
+                  // Transform.translate move um widget com valores neg
+                  Transform.translate(
+                    offset: const Offset(-16, 0),
+                    child: const BackButton(color: Colors.black),
                   ),
                   const SizedBox(width: 12),
                   Image.asset('assets/images/logo.png', width: 160),
@@ -608,6 +628,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ),
         const SizedBox(height: 24),
 
+        // Vídeos
         if (videoLinks.isNotEmpty) ...[
           const Text(
             'Vídeos demonstrativos',
@@ -698,6 +719,44 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ),
         const SizedBox(height: 24),
 
+        // Documentos
+        const Text(
+          'Documentos',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E7D32),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        ..._documentLinks().map((doc) {
+          final name = doc['name'] as String? ?? '';
+          final url = doc['url'] as String? ?? '';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PdfWebViewScreen(
+                    name: name,
+                    url: url,
+                  ),
+                ),
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(border: Border.all(color: const Color(0xFF2E7D32)), borderRadius: BorderRadius.circular(12)),
+                child: Text(name, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 24),
+
         // Mentores e conselheiros
         if (externalMembers.isNotEmpty) ...[
           const Text(
@@ -722,7 +781,12 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.person_outline, size: 18, color: Colors.grey),
+                    child: SvgPicture.asset(
+                      'assets/icons/person.svg',
+                      colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                      width: 18,
+                      height: 18,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -744,7 +808,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
         ],
 
         const SizedBox(height: 24),
@@ -853,7 +916,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
         ],
 
         // Sumário executivo
-        const SizedBox(height: 24),
         const Text(
           'Sumário executivo',
           style: TextStyle(
@@ -1394,7 +1456,7 @@ class _StartupChartState extends State<_StartupChart> {
                     color: _variation > 0
                         ? const Color(0xFF2E7D32)
                         : _variation < 0
-                            ? Colors.red
+                            ? Color(0xFFB30B0E)
                             : Colors.grey,
                   ),
                 ),
@@ -1438,7 +1500,7 @@ class _StartupChartState extends State<_StartupChart> {
     final chartColor = _variation > 0
         ? const Color(0xFF2E7D32)
         : _variation < 0
-            ? Colors.red
+            ? Color(0xFFB30B0E)
             : Colors.grey;
 
     return Column(

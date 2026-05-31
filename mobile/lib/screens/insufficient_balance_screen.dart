@@ -1,10 +1,11 @@
 /*
- * Tela Saldo Insuficiente — MesclaInvest
- * Autor: Rafaela Jacobsen Braga | RA: 25004280
- */
+---------- Tela de Saldo Insuficiente ----------
+- Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
+*/
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InsufficientBalanceScreen extends StatefulWidget {
   final String startupId;
@@ -51,7 +52,7 @@ class _InsufficientBalanceScreenState extends State<InsufficientBalanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Erro ao consultar carteira'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFB30B0E),
         ),
       );
     }

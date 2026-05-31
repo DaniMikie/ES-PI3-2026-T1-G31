@@ -1,24 +1,15 @@
 /*
- * Tela Carteira — MesclaInvest
- * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
- *
- * Exibe saldo, patrimônio em tokens, gráfico de patrimônio acumulado
- * (com pontos verdes pra compra e vermelhos pra venda), gráfico de variação
- * por startup com resultado total em R$ e lucro/prejuízo individual,
- * lista de investimentos e histórico de transações.
- */
-
-/*
-  Alterações: Ana Luísa Maso Mafra | RA: 25007997
-*/
-
-/*
- Alterações: Rafaela Jacobsen Braga | RA: 25004280
+----------- Tela de Carteira ----------
+- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+- Ajustes Gerais: Ana Luísa Maso Mafra | RA: 25007997
+- Ajustes Gerais: Rafaela Jacobsen Braga | RA: 25004280
+- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -401,14 +392,15 @@ class _WalletScreenState extends State<WalletScreen> {
                     labelText: 'Confirme sua senha',
                     errorText: senhaError,
                     suffixIcon: IconButton(
-                      icon: Icon(
+                      icon: SvgPicture.asset(
                         senhaVisivel
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        size: 20,
+                            ? 'assets/icons/eye_on.svg'
+                            : 'assets/icons/eye_off.svg',
+                        colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                        width: 24,
+                        height: 24,
                       ),
-                      onPressed: () =>
-                          setDialogState(() => senhaVisivel = !senhaVisivel),
+                      onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                     ),
                   ),
                 ),
@@ -603,12 +595,13 @@ class _WalletScreenState extends State<WalletScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        Icon(
+                                        SvgPicture.asset(
                                           _saldoVisivel
-                                              ? Icons.visibility_outlined
-                                              : Icons.visibility_off_outlined,
-                                          color: Colors.grey,
-                                          size: 16,
+                                              ? 'assets/icons/eye_on.svg'
+                                              : 'assets/icons/eye_off.svg',
+                                          colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn),
+                                          width: 18,
+                                          height: 18,
                                         ),
                                       ],
                                     ),
@@ -672,12 +665,19 @@ class _WalletScreenState extends State<WalletScreen> {
                                     borderRadius: BorderRadius.circular(24),
                                   ),
                                 ),
-                                child: const Text(
-                                  '+ Adicionar Saldo',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.add, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Adicionar Saldo',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -696,12 +696,19 @@ class _WalletScreenState extends State<WalletScreen> {
                                     ),
                                   ),
                                 ),
-                                child: const Text(
-                                  '↑ Sacar',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.arrow_upward, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Sacar',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -756,7 +763,7 @@ class _WalletScreenState extends State<WalletScreen> {
         padding: const EdgeInsets.symmetric(vertical: 48),
         child: Column(
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 34),
+            const Icon(Icons.error_outline, color: Color(0xFFB30B0E), size: 34),
             const SizedBox(height: 12),
             Text(
               _errorMessage!,
@@ -805,13 +812,24 @@ class _WalletScreenState extends State<WalletScreen> {
                   color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  '${_chartVariation >= 0 ? '↑' : '↓'} ${_chartVariation.abs().toStringAsFixed(2)}% de variação',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _chartVariation >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                      size: 15,
+                      color: Colors.black87,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${_chartVariation.abs().toStringAsFixed(2)}% de variação',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -888,7 +906,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   const SizedBox(width: 4),
                   const Text('Compra', style: TextStyle(fontSize: 10, color: Colors.grey)),
                   const SizedBox(width: 12),
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFB30B0E), shape: BoxShape.circle)),
                   const SizedBox(width: 4),
                   const Text('Venda/Saque', style: TextStyle(fontSize: 10, color: Colors.grey)),
                   const SizedBox(width: 12),
@@ -1062,7 +1080,7 @@ class _WalletScreenState extends State<WalletScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: totalProfitCents >= 0 ? const Color(0xFF2E7D32).withAlpha(25) : Colors.red.withAlpha(25),
+            color: totalProfitCents >= 0 ? const Color(0xFF2E7D32).withAlpha(25) : Color(0xFFB30B0E).withAlpha(25),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -1071,7 +1089,7 @@ class _WalletScreenState extends State<WalletScreen> {
               Icon(
                 totalProfitCents >= 0 ? Icons.trending_up : Icons.trending_down,
                 size: 16,
-                color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Colors.red,
+                color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Color(0xFFB30B0E),
               ),
               const SizedBox(width: 6),
               Text(
@@ -1079,7 +1097,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Colors.red,
+                  color: totalProfitCents >= 0 ? const Color(0xFF2E7D32) : Color(0xFFB30B0E),
                 ),
               ),
             ],
@@ -1205,7 +1223,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       const SizedBox(width: 4),
                       Text('$name ', style: const TextStyle(fontSize: 10, color: Colors.black87)),
                       Text('$profitStr (${lastVariation >= 0 ? '+' : ''}${lastVariation.toStringAsFixed(1)}%)',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: lastVariation >= 0 ? const Color(0xFF2E7D32) : Colors.red)),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: lastVariation >= 0 ? const Color(0xFF2E7D32) : Color(0xFFB30B0E))),
                     ],
                   );
                 }).toList(),
@@ -1330,7 +1348,7 @@ class _WalletScreenState extends State<WalletScreen> {
                               fontWeight: FontWeight.bold,
                               color: variation >= 0
                                   ? const Color(0xFF2E7D32)
-                                  : Colors.red,
+                                  : Color(0xFFB30B0E),
                             ),
                           ),
                         ],
@@ -1442,7 +1460,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         '${(isBuy || isWithdrawal) ? '-' : '+'} ${_formatMoney(totalCents / 100)}',
                         style: TextStyle(
                           color: (isBuy || isWithdrawal)
-                              ? Colors.red.shade700
+                              ? Color(0xFFB30B0E)
                               : const Color(0xFF2E7D32),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -1582,7 +1600,7 @@ class _LineChartPainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       final point = points[i];
       final type = i < types.length ? types[i] : 'buy';
-      final pointColor = type == 'sell' ? Colors.red : color;
+      final pointColor = type == 'sell' ? Color(0xFFB30B0E) : color;
       final pointPaint = Paint()..color = pointColor..style = PaintingStyle.fill;
       // Borda branca + ponto colorido (efeito de destaque)
       canvas.drawCircle(point, 5, dotBorderPaint);
