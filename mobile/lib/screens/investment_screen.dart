@@ -1,21 +1,6 @@
 /*
 ---------- Tela de Aplicação de Investimento ----------
-- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
 - Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
-
-Fluxo de compra de tokens:
-1. Usuário informa a quantidade de tokens que quer comprar
-2. Sistema calcula o valor total (quantidade × preço por token)
-3. Valida: quantidade > 0, não excede disponíveis, saldo suficiente
-4. Pede confirmação com senha (reautentica via Firebase Auth)
-5. Chama Cloud Function "buyTokens" com startupId, quantity e priceCents
-6. Se sucesso, mostra confirmação e volta pra tela anterior
-
-Parâmetros recebidos:
-- startupId: ID da startup no Firestore
-- startupNome: nome pra exibir na tela
-- valorPorToken: preço atual em reais (ex: 2.89)
-- tokensDisponiveis: máximo que pode comprar
 */
 
 import 'package:flutter/material.dart';
