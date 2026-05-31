@@ -86,6 +86,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
 
   void _showAuthDialog() {
     final senhaController = TextEditingController();
+    bool senhaVisivel = false;
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -110,7 +111,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                     ),
                   TextField(
                     controller: senhaController,
-                    obscureText: true,
+                    obscureText: !senhaVisivel,
                     enabled: !loading,
                     decoration:  InputDecoration(
                       prefixIcon: Padding(
@@ -121,6 +122,17 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                           width: 24,
                           height: 24,
                         ),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: SvgPicture.asset(
+                          senhaVisivel
+                              ? 'assets/icons/eye_on.svg'
+                              : 'assets/icons/eye_off.svg',
+                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                          width: 24,
+                          height: 24,
+                        ),
+                        onPressed: () => setDialogState(() => senhaVisivel = !senhaVisivel),
                       ),
                       hintText: '••••••••',
                     ),
@@ -153,7 +165,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                     final data = Map<String, dynamic>.from(result.data as Map);
                     final buyData = Map<String, dynamic>.from(data['data'] as Map? ?? data);
 
-                    Navigator.pop(dialogContext);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Compra realizada! ${buyData['quantity']} tokens'), backgroundColor: const Color(0xFF2E7D32)),
@@ -163,7 +175,7 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                   } on FirebaseAuthException catch (_) {
                     setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                   } on FirebaseFunctionsException catch (e) {
-                    Navigator.pop(dialogContext);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
                     if (mounted) {
                       if (e.code == 'failed-precondition' || (e.message ?? '').toLowerCase().contains('saldo')) {
                         _showSaldoInsuficiente(e.message ?? 'Saldo insuficiente');

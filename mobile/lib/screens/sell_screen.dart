@@ -104,7 +104,7 @@ class _SellScreenState extends State<SellScreen> {
           children: [
             const Text(
               'Criar anúncio de venda',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -159,8 +159,8 @@ class _SellScreenState extends State<SellScreen> {
               ),
               child: const Row(children: [
                 Text('Quer saber mais informações? ', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                Text('Ir para a startup', style: TextStyle(color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
-                Icon(Icons.arrow_forward, size: 14, color: const Color(0xFF2E7D32)),
+                Text('Ir para a startup', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                Icon(Icons.arrow_forward, size: 14, color: Color(0xFF2E7D32)),
               ]),
             ),
             const SizedBox(height: 28),
@@ -279,12 +279,12 @@ class _SellScreenState extends State<SellScreen> {
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: const Color(0xFF2E7D32)),
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFF2E7D32)),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Seu anúncio ficará visível para compradores no balcão. Os tokens só são transferidos quando alguém aceitar sua oferta.',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF2E7D32)),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF2E7D32)),
                     ),
                   ),
                 ],
@@ -446,7 +446,7 @@ class _SellScreenState extends State<SellScreen> {
                             // Envia em centavos para o backend (padrão do projeto)
                             'priceCents': (_customPrice * 100).round(),
                           });
-                          Navigator.pop(dialogContext);
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
                           await Future.delayed(const Duration(milliseconds: 100));
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

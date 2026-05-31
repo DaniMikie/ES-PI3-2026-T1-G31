@@ -5,7 +5,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class InsufficientBalanceScreen extends StatefulWidget {
   final String startupId;

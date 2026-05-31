@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Perfil do Usuário ----------
 - Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
-- Ajustes Gerais: Ana Luísa Maso Mafra | RA: 25007997
 */
 
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'login_screen.dart';
 import 'totp_setup_screen.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -134,6 +134,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _alterarDados() {
     final nameController = TextEditingController(text: _dadosUsuario['nomeCompleto']);
     final phoneController = TextEditingController(text: _dadosUsuario['telefone']);
+    final phoneMask = MaskTextInputFormatter(
+      mask: '(##) #####-####',
+      filter: {'#': RegExp(r'[0-9]')},
+    );
 
     showDialog(
       context: context,
@@ -145,7 +149,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nome completo')),
               const SizedBox(height: 12),
-              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Telefone'), keyboardType: TextInputType.phone),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [phoneMask],
+                decoration: const InputDecoration(
+                  labelText: 'Telefone',
+                  hintText: '(00) 00000-0000',
+                ),
+              ),
             ],
           ),
         ),
@@ -251,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   try {
                     final callable = _functions.httpsCallable('disableTotp');
                     await callable.call({'code': codeController.text.trim()});
-                    Navigator.pop(dialogContext);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
                     setState(() => _mfaAtivo = false);
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('2FA desativado'), backgroundColor: Color(0xFF2E7D32)));
                   } on FirebaseFunctionsException catch (e) {
@@ -310,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 28),
                     Row(
                       children: [
-                        Switch(value: _mfaAtivo, onChanged: _onMfaToggle, activeColor: Colors.white, activeTrackColor: const Color(0xFF2E7D32), inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade400),
+                        Switch(value: _mfaAtivo, onChanged: _onMfaToggle, activeThumbColor: Colors.white, activeTrackColor: const Color(0xFF2E7D32), inactiveThumbColor: Colors.white, inactiveTrackColor: Colors.grey.shade400),
                         const SizedBox(width: 8),
                         const Text('Ativar Autenticação Multifator', style: TextStyle(fontSize: 15, color: Colors.black)),
                       ],

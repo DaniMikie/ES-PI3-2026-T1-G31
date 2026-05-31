@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Início ----------
 - Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
-- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 
 import 'package:flutter/material.dart';
@@ -25,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _functions = FirebaseFunctions.instance;
   final _searchController = TextEditingController();
 
-  List<Map<String, dynamic>> _startups = [];
   List<Map<String, dynamic>> _startupsFiltradas = [];
   bool _loading = true;
   String? _error;
@@ -79,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          _startups = startups;
           _startupsFiltradas = startups;
           _loading = false;
         });
@@ -297,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // ── Subtítulo e título Destaques ───────────────────
             const Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 'Destaques',
                 style: TextStyle(
@@ -359,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 itemCount: _filtros.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final filtro = _filtros[index];
                   final selecionado = _filtroSelecionado == filtro;
@@ -420,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   itemCount: _startupsFiltradas.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final startup = _startupsFiltradas[index];
                     final stage = startup['stage'] as String? ?? '';

@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Detalhes da Startup -----------
-- Ajustes Gerais: Rafaela Jacobsen | RA: 25004280
-- Modificações de Design/Funções Adicionais: Felipe Nasser Coelho Moussa | RA: 25004922
+- Autora Principal: Rafaela Jacobsen | RA: 25004280
 */
 
 import 'package:flutter/material.dart';
@@ -12,6 +11,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'document_webview_screen.dart';
 import 'investment_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'main_screen.dart';
 
 class StartupDetailsScreen extends StatefulWidget {
   final String startupId;
@@ -135,177 +135,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _sellTokens() {
-    final qtyController = TextEditingController();
-    final senhaController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        String? erro;
-        bool loading = false;
-        bool pedindoSenha = false;
-        int qty = 0;
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) => AlertDialog(
-            title: Text(pedindoSenha ? 'Confirmar venda' : 'Vender tokens'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (erro != null)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        erro!,
-                        style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13),
-                      ),
-                    ),
-                  if (!pedindoSenha)
-                    TextField(
-                      controller: qtyController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: 'Quantidade de tokens',
-                      ),
-                    )
-                  else ...[
-                    Text(
-                      'Vender $qty tokens',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: senhaController,
-                      obscureText: true,
-                      enabled: !loading,
-                      decoration: InputDecoration(
-                        hintText: 'Sua senha',
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: SvgPicture.asset(
-                            'assets/icons/password.svg',
-                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
-                            width: 24,
-                            height: 24,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: loading ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: loading
-                    ? null
-                    : () async {
-                        if (!pedindoSenha) {
-                          final parsed = int.tryParse(qtyController.text);
-                          if (parsed == null || parsed <= 0) {
-                            setDialogState(
-                              () => erro = 'Informe uma quantidade válida',
-                            );
-                            return;
-                          }
-                          // Verifica se tem tokens suficientes
-                          final userTokens = _startup!['access']?['tokenQuantity'];
-                          final available = userTokens is int ? userTokens : (userTokens is num ? userTokens.toInt() : 0);
-                          if (parsed > available) {
-                            setDialogState(() => erro = 'Voce possui apenas $available tokens');
-                            return;
-                          }
-                          qty = parsed;
-                          setDialogState(() {
-                            pedindoSenha = true;
-                            erro = null;
-                          });
-                          return;
-                        }
-                        if (senhaController.text.isEmpty) {
-                          setDialogState(() => erro = 'Informe sua senha');
-                          return;
-                        }
-                        setDialogState(() {
-                          loading = true;
-                          erro = null;
-                        });
-                        try {
-                          final user = FirebaseAuth.instance.currentUser!;
-                          await user.reauthenticateWithCredential(
-                            EmailAuthProvider.credential(
-                              email: user.email!,
-                              password: senhaController.text,
-                            ),
-                          );
-                          final callable = _functions.httpsCallable(
-                            'sellTokens',
-                          );
-                          await callable.call({
-                            'startupId': widget.startupId,
-                            'quantity': qty,
-                          });
-                          if (!dialogContext.mounted) return;
-                          Navigator.pop(dialogContext);
-                          _loadDetails();
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('$qty tokens vendidos!'),
-                              backgroundColor: const Color(0xFF2E7D32),
-                            ),
-                          );
-                        } on FirebaseAuthException catch (_) {
-                          setDialogState(() {
-                            erro = 'Senha incorreta';
-                            loading = false;
-                          });
-                        } on FirebaseFunctionsException catch (e) {
-                          setDialogState(() {
-                            erro = e.message ?? 'Erro ao vender';
-                            loading = false;
-                          });
-                        } catch (_) {
-                          setDialogState(() {
-                            erro = 'Erro inesperado';
-                            loading = false;
-                          });
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                ),
-                child: loading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        pedindoSenha ? 'Confirmar' : 'Avançar',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -604,7 +433,6 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ) ??
           [],
     );
-    final isInvestor = _startup!['access']?['isInvestor'] == true;
     final videoLinks = _videoLinks();
 
     return Column(
@@ -870,7 +698,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
         ),
         const SizedBox(height: 24),
-
+        /*
         // Área do investidor
         if (isInvestor) ...[
           Container(
@@ -912,6 +740,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
           ),
           const SizedBox(height: 24),
         ],
+         */
 
         // Sumário executivo
         const Text(
@@ -1014,7 +843,7 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
               'R\$ ${_formatNumber((capitalCents / 100).round())}',
               'Captados',
             ),
-            _tokenInfo('${_formatNumber(tokensAvailable)}', 'Disponíveis'),
+            _tokenInfo(_formatNumber(tokensAvailable), 'Disponíveis'),
             _tokenInfo(
               'R\$ ${(priceCents / 100).toStringAsFixed(2)}',
               'Por token',
@@ -1064,7 +893,13 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: _sellTokens,
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 1)),
+                          (route) => false,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
@@ -1072,13 +907,17 @@ class _StartupDetailsScreenState extends State<StartupDetailsScreen> {
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: const Text('Vender tokens'),
+                  child: const Text('Ir para compra e venda tokens'),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                    // Volta pra MainScreen e vai pra aba Carteira (index 2)
-                    Navigator.pop(context);
+                    // .pushAndRemoveUntil + (route) = false -> limpa o stack de navegação colocando MainScreen com wallet em root
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)),
+                          (route) => false,
+                    );
                   },
                   child: const Text(
                     'Consulte seu saldo aqui',
@@ -1311,7 +1150,7 @@ class _UpdatesListState extends State<_UpdatesList> {
             decoration: BoxDecoration(
               border: Border.all(color: isEvent ? const Color(0xFF2E7D32) : Colors.grey.shade300),
               borderRadius: BorderRadius.circular(12),
-              color: isEvent ? const Color(0xFF2E7D32).withOpacity(0.05) : null,
+              color: isEvent ? const Color(0xFF2E7D32).withValues(alpha: 0.05) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1596,7 +1435,7 @@ class _StartupLineChartPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final dotPaint = Paint()

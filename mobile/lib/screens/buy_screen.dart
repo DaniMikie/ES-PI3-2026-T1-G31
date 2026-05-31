@@ -92,7 +92,7 @@ class _BuyScreenState extends State<BuyScreen> {
             children: [
               const Text(
                 'Comprar tokens',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -148,8 +148,8 @@ class _BuyScreenState extends State<BuyScreen> {
                 ),
                 child: const Row(children: [
                   Text('Quer saber mais informações? ', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  Text('Ir para a startup', style: TextStyle(color: const Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
-                  Icon(Icons.arrow_forward, size: 14, color: const Color(0xFF2E7D32)),
+                  Text('Ir para a startup', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                  Icon(Icons.arrow_forward, size: 14, color: Color(0xFF2E7D32)),
                 ]),
               ),
               const SizedBox(height: 28),
@@ -177,7 +177,7 @@ class _BuyScreenState extends State<BuyScreen> {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 40),
-                    child: CircularProgressIndicator(color: const Color(0xFF2E7D32)),
+                    child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
                   ),
                 )
               else if (_offerError != null)
@@ -189,7 +189,7 @@ class _BuyScreenState extends State<BuyScreen> {
                       const SizedBox(height: 8),
                       Text(_offerError!, style: const TextStyle(color: Colors.grey)),
                       const SizedBox(height: 12),
-                      TextButton(onPressed: _loadOffers, child: const Text('Tentar novamente', style: TextStyle(color: const Color(0xFF2E7D32)))),
+                      TextButton(onPressed: _loadOffers, child: const Text('Tentar novamente', style: TextStyle(color: Color(0xFF2E7D32)))),
                     ]),
                   ),
                 )
@@ -219,10 +219,9 @@ class _BuyScreenState extends State<BuyScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _offers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final offer = _offers[index];
-                    final offerId = offer['id'] as String? ?? '';
                     final priceCents = offer['priceCents'] is num ? (offer['priceCents'] as num).toInt() : 0;
                     final pricePerToken = priceCents / 100;
                     final qty = offer['quantity'] is num ? (offer['quantity'] as num).toInt() : 0;
@@ -300,7 +299,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                     children: [
                                       Text(
                                         _formatMoney(pricePerToken),
-                                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
+                                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                                       ),
                                       Text(
                                         'por token',
@@ -445,7 +444,7 @@ class _BuyScreenState extends State<BuyScreen> {
                           const Text('Total a pagar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(
                             _formatMoney(totalValue),
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                           ),
                         ],
                       ),
@@ -520,7 +519,7 @@ class _BuyScreenState extends State<BuyScreen> {
                                 'offerId': offerId,
                                 'quantity': buyQty,
                               });
-                              Navigator.pop(dialogContext);
+                              if (dialogContext.mounted) Navigator.pop(dialogContext);
                               await Future.delayed(const Duration(milliseconds: 100));
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -534,7 +533,7 @@ class _BuyScreenState extends State<BuyScreen> {
                             } on FirebaseAuthException catch (_) {
                               setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                             } on FirebaseFunctionsException catch (e) {
-                              Navigator.pop(dialogContext);
+                              if (dialogContext.mounted) Navigator.pop(dialogContext);
                               await Future.delayed(const Duration(milliseconds: 100));
                               if (mounted) {
                                 if (e.code == 'failed-precondition' || (e.message ?? '').toLowerCase().contains('saldo')) {
