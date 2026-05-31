@@ -8,84 +8,122 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 
 ---
 
-## Funcionalidades
+## Funcionalidades Implementadas
 
-* **Autenticação de usuários**
-* **Catálogo de startups**
-* **Visualização de informações institucionais**
-* **Envio de perguntas para empreendedores**
-* **Compra e venda simulada de tokens**
-* **Acompanhamento da valorização dos tokens**
-* **Segurança da conta (autenticação adicional)**
+* **Autenticação de usuários** (cadastro, login, recuperação de senha, verificação de email)
+* **Autenticação multifator (2FA)** com TOTP via Google Authenticator (QR code)
+* **Catálogo de startups** com filtros por estágio e busca por texto
+* **Tela detalhada da startup** com abas: A Startup, Os Tokens, Perguntas, Novidades
+* **Estrutura societária** com sócios, mentores e conselheiros
+* **Vídeos demonstrativos** com player YouTube embutido
+* **Perguntas públicas e privadas** para empreendedores (privadas só para investidores)
+* **Atualizações e eventos** das startups (aba Novidades)
+* **Sumário executivo e plano de negócios**
+* **Perfil do usuário** com dados pessoais, alteração de senha e 2FA
+* **Carteira simulada** com saldo fictício, adição de crédito e saque
+* **Compra de tokens** com validação de saldo, limite de emissão e registro de transação
+* **Venda de tokens** com re-autenticação por senha
+* **Balcão de ofertas** — anunciar tokens com preço customizado, listar e aceitar ofertas de outros investidores (com proteção contra race condition via Firestore transactions)
+* **Meus anúncios** — visualizar ofertas criadas, status e opção de cancelar
+* **Lógica de valorização** — preço do token recalculado automaticamente (média ponderada)
+* **Dashboard com gráfico de patrimônio** — evolução do valor total dos tokens ao longo do tempo (pontos verdes = compra, vermelhos = venda)
+* **Gráfico de variação por startup** — multi-linha com lucro/prejuízo em R$ e % por investimento
+* **Resultado total** — exibe lucro ou prejuízo consolidado de todos os investimentos
+* **Gráfico de valorização na startup** — cor dinâmica (verde se valorizou, vermelho se desvalorizou, cinza se estável)
+* **Variação percentual** por investimento (preço de compra vs preço atual)
+* **Tokens disponíveis** — controle de emissão (total emitido - vendidos)
+* **Capital captado** — atualizado automaticamente a cada compra
+* **Histórico de transações** paginado com "Ver mais"
+* **Validação de CPF e telefone** duplicado no cadastro (com rollback do Authentication em caso de falha)
+* **Testes unitários** com Jest (51 testes)
 
 ---
 
 ## Tecnologias Utilizadas
 
 ### Frontend (Mobile)
-
-* **Flutter**
-* **Dart**
+* **Flutter** / **Dart**
+* **youtube_player_flutter** (player de vídeo)
+* **qr_flutter** (QR code para 2FA)
 
 ### Backend
-
-* **Node.js**
-* **JavaScript / TypeScript**
+* **Firebase Functions** (Node.js / TypeScript)
+* **otplib** (geração e validação TOTP)
 
 ### Banco de Dados
-
 * **Firebase Firestore**
 
-### Ferramentas de Desenvolvimento
+### Autenticação
+* **Firebase Authentication** (Email/Password)
+* **TOTP** (Google Authenticator) para 2FA
 
-* **Git**
-* **GitHub**
+### Ferramentas
+* **Git** / **GitHub**
 * **Visual Studio Code**
 * **Android Studio**
+* **Jest** (testes unitários)
 
 ---
 
-## Estrutura do Projeto
+## Arquitetura do Backend
+
+O backend segue separação de responsabilidades em camadas:
 
 ```
-    PI3/
-│
-├── .git/                          # Controle de versão Git
-│   ├── hooks/
-│   ├── info/
-│   ├── logs/
-│   ├── objects/
-│   ├── refs/
-│   └── [arquivos de configuração do Git]
-│
-├── backend/                       # API Node.js + TypeScript
-│   ├── node_modules/             # Dependências instaladas (npm)
-│   │   └── [270+ pacotes]
-│   │
-│   ├── src/                      # Código-fonte
-│   │   ├── config/              # Configurações
-│   │   ├── controllers/         # Controladores
-│   │   ├── middlewares/         # Middlewares
-│   │   ├── models/              # Modelos de dados
-│   │   ├── routes/              # Rotas da API
-│   │   ├── services/            # Serviços/lógica de negócio
-│   │   ├── utils/               # Utilitários
-│   │   └── server.ts            # Servidor Express inicial configurado
-│   │
-│   ├── .env                      # Variáveis de ambiente (PORT=3000)
-│   ├── .gitignore               # Arquivos ignorados pelo Git
-│   ├── package.json             # Dependências e scripts npm
-│   ├── package-lock.json        # Lock de versões
-│   └── tsconfig.json            # Configuração TypeScript
-│
-├── database/                     # database
-|
-├── mobile/                       # Aplicação Flutter
-│
-├── .gitignore                    # Git ignore raiz
-└── README.md                     # Documentação do projeto
-
+Flutter (app) → Cloud Function (handler) → Repository → Firestore
 ```
+
+* **handlers/** — recebem chamadas do Flutter, validam dados e autenticação
+* **repositories/** — únicos que acessam o Firestore (leitura e escrita)
+* **shared/** — código reutilizável (auth, validação, constantes, config Firebase)
+* **types/** — definição dos tipos de dados (TypeScript)
+
+---
+
+## Cloud Functions Disponíveis
+
+### Módulo Startups (6)
+
+| Function | Descrição |
+|----------|-----------|
+| `listStartups` | Lista startups com filtro por estágio e busca por texto |
+| `getStartupDetails` | Retorna detalhes completos + tokens disponíveis |
+| `getStartupContent` | Retorna conteúdos públicos |
+| `getStartupUpdates` | Retorna atualizações e eventos da startup |
+| `createStartupQuestion` | Cria pergunta pública ou privada |
+| `seedStartupCatalog` | Popula o banco com dados de demonstração |
+
+### Módulo Exchange (13)
+
+| Function | Descrição |
+|----------|-----------|
+| `addCredits` | Adiciona saldo fictício na carteira |
+| `getWallet` | Retorna saldo, posições e preço atual dos tokens |
+| `buyTokens` | Compra tokens (valida saldo, limite de emissão, atualiza capital) |
+| `sellTokens` | Venda direta de tokens pelo preço atual |
+| `createOffer` | Cria oferta no balcão com preço customizado (transaction atômica) |
+| `listOffers` | Lista ofertas ativas de uma startup |
+| `listMyOffers` | Lista ofertas do próprio usuário |
+| `acceptOffer` | Aceita oferta com transaction (evita race condition) |
+| `cancelOffer` | Cancela oferta e devolve tokens |
+| `listTransactions` | Retorna histórico de transações |
+| `getTokenHistory` | Histórico de patrimônio acumulado para gráfico da carteira |
+| `getStartupTokenHistory` | Histórico de preço para gráfico da startup (com preço atual) |
+| `getPortfolioHistory` | Variação % por startup para gráfico multi-linha |
+
+### Módulo Users (9)
+
+| Function | Descrição |
+|----------|-----------|
+| `createUser` | Cadastra usuário (valida CPF e telefone duplicado) |
+| `getUserProfile` | Retorna dados do perfil |
+| `updateUserProfile` | Atualiza nome e telefone |
+| `updateMfaPreference` | Atualiza preferência de MFA |
+| `withdrawCredits` | Saque de saldo com re-autenticação |
+| `enableTotp` | Gera secret TOTP e retorna QR code |
+| `verifyTotp` | Valida código TOTP (ativação e login) |
+| `disableTotp` | Desativa TOTP com confirmação por código |
+| `checkTotp` | Verifica se usuário tem TOTP ativo |
 
 ---
 
@@ -94,41 +132,78 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/nome-do-repositorio.git
+git clone https://github.com/DaniMikie/ES-PI3-2026-T1-G31.git
 ```
 
----
+### 2. Backend — Instalar dependências e buildar
 
-### 2. Executar o Backend
+```bash
+cd backend/functions
+npm install
+npm run build
+```
+
+### 3. Backend — Rodar testes
+
+```bash
+npm run test
+```
+
+### 4. Backend — Deploy para o Firebase
 
 ```bash
 cd backend
-npm install
-npm run dev
+firebase login
+firebase deploy --only functions,firestore:indexes
 ```
+
+### 5. Mobile — Instalar dependências
+
+```bash
+cd mobile
+flutter pub get
+```
+
+### 6. Mobile — Rodar o app
+
+```bash
+flutter run
+```
+
+Requer emulador Android (Android Studio) ou dispositivo físico conectado via USB.
 
 ---
 
-### 3. Executar o Aplicativo Mobile
+## Dados no Firebase
+
+### Firestore
+* Coleção `startups` — 5 startups cadastradas (GreenPulse, MedConnect, AgroSmart, EduFlex, FinToken)
+* Subcoleção `startups/{id}/questions` — perguntas dos usuários
+* Subcoleção `startups/{id}/priceHistory` — snapshots de preço para gráficos
+* Subcoleção `startups/{id}/investors` — posição de tokens dos investidores
+* Subcoleção `startups/{id}/updates` — atualizações e eventos
+* Coleção `users` — dados dos usuários (nome, CPF, telefone, saldo, TOTP)
+* Subcoleção `users/{uid}/transactions` — histórico de transações
+* Coleção `offers` — ofertas do balcão de negociação
+
+### Authentication
+* Email/Password habilitado
+* Verificação de email automática no cadastro
 
 ---
 
 ## Integrantes
 
-* Ana Luísa Maso Mafra – RA 25007997
+* Ana Luísa Maso Mafra – 25007997
 * Daniela Mikie Kikuchi Gonçalves – 25003068
 * Felipe Nasser Coelho Moussa – 25004922
-* Rafaela Jacobsen Braga – RA
-* Kauan Aurelio Lasmar Dias – RA
+* Rafaela Jacobsen Braga – 25004280
+* Kauan Aurelio Lasmar Dias – 25001590
 
 ---
 
 ## Disciplina
 
-Projeto desenvolvido para a disciplina:
-
 **Projeto Integrador 3**
 Curso de **Engenharia de Software**
 **PUC-Campinas – 2026**
-
----
