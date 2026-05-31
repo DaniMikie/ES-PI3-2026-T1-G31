@@ -144,14 +144,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _formKey.currentState!.validate();
         }
       } catch (e) {
-        // Se a Cloud Function falhou, o usuário já foi criado no Authentication
-        // mas não no Firestore. Precisa deletar do Auth pra não ficar inconsistente.
-        // Sem isso, o e-mail fica "ocupado" no Auth mas sem dados no Firestore.
-        try {
-          await FirebaseAuth.instance.currentUser?.delete();
-        } catch (_) {
-          // Se não conseguir deletar (ex: token expirado), ignora
-        }
         if (mounted) {
           String errorMsg = 'Erro ao salvar dados do usuário';
           if (e is FirebaseFunctionsException) {
