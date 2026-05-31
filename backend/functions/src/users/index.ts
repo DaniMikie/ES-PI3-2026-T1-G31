@@ -3,6 +3,7 @@
  * Autor: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
  */
 
+export {checkDuplicate} from "./handlers/checkDuplicate";
 export {checkTotp} from "./handlers/checkTotp";
 export {createUser} from "./handlers/createUser";
 export {disableTotp} from "./handlers/disableTotp";

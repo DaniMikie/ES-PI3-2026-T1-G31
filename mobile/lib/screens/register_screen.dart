@@ -95,6 +95,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return true;
   }
 
+  // Verifica em tempo real se e-mail, CPF ou telefone já existem no banco
+  // Chamado quando o usuário sai do campo (perde o foco)
+  Future<void> _checkDuplicate({String? email, String? cpf, String? phone}) async {
+    try {
+      final callable = _functions.httpsCallable('checkDuplicate');
+      final result = await callable.call({
+        if (email != null) 'email': email,
+        if (cpf != null) 'cpf': cpf,
+        if (phone != null) 'phone': phone,
+      });
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final inner = Map<String, dynamic>.from(data['data'] as Map? ?? data);
+
+      if (mounted) {
+        setState(() {
+          if (email != null && inner['emailExists'] == true) {
+            _emailError = 'Este e-mail já está cadastrado';
+          } else if (email != null) {
+            _emailError = null;
+          }
+          if (cpf != null && inner['cpfExists'] == true) {
+            _cpfError = 'Este CPF já está cadastrado';
+          } else if (cpf != null) {
+            _cpfError = null;
+          }
+          if (phone != null && inner['phoneExists'] == true) {
+            _phoneError = 'Este telefone já está cadastrado';
+          } else if (phone != null) {
+            _phoneError = null;
+          }
+        });
+        _formKey.currentState?.validate();
+      }
+    } catch (_) {
+      // Se falhar a verificação, não bloqueia — será validado no cadastro
+    }
+  }
+
   // Função principal de cadastro
   // 1. Limpa erros anteriores
   // 2. Valida formulário (campos obrigatórios, CPF, senhas iguais)
@@ -246,20 +284,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Campo Email
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email*',
-                      hintText: 'seuemail@exemplo.com',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFC8C8C8),
-                      ),
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SvgPicture.asset(
-                          'assets/icons/email.svg',
-                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                  Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus && _emailController.text.trim().contains('@')) {
+                        _checkDuplicate(email: _emailController.text.trim().toLowerCase());
+                      }
+                    },
+                    child: TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email*',
+                        hintText: 'seuemail@exemplo.com',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFFC8C8C8),
+                        ),
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SvgPicture.asset(
+                            'assets/icons/email.svg',
+                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
                           width: 24,
                           height: 24,
                         ),
@@ -274,70 +318,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
+                  ),
                   const SizedBox(height: 24),
 
                   // Campo CPF
-                  TextFormField(
-                    controller: _cpfController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [_cpfMask],
-                    decoration: InputDecoration(
-                      labelText: 'CPF*',
-                      hintText: '000.000.000-00',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFC8C8C8),
-                      ),
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SvgPicture.asset(
-                          'assets/icons/pencil.svg',
-                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe seu CPF';
-                      if (_cpfMask.getUnmaskedText().length != 11) return 'CPF incompleto';
-                      if (!_isValidCpf(_cpfMask.getUnmaskedText())) return 'CPF inválido';
-                      if (_cpfError != null) return _cpfError;
-                      return null;
+                  Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus && _cpfMask.getUnmaskedText().length == 11 && _isValidCpf(_cpfMask.getUnmaskedText())) {
+                        _checkDuplicate(cpf: _cpfController.text.trim());
+                      }
                     },
+                    child: TextFormField(
+                      controller: _cpfController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [_cpfMask],
+                      decoration: InputDecoration(
+                        labelText: 'CPF*',
+                        hintText: '000.000.000-00',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFFC8C8C8),
+                        ),
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SvgPicture.asset(
+                            'assets/icons/pencil.svg',
+                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Informe seu CPF';
+                        if (_cpfMask.getUnmaskedText().length != 11) return 'CPF incompleto';
+                        if (!_isValidCpf(_cpfMask.getUnmaskedText())) return 'CPF inválido';
+                        if (_cpfError != null) return _cpfError;
+                        return null;
+                      },
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Campo Telefone
-                  TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [_phoneMask],
-                    decoration: InputDecoration(
-                      labelText: 'Telefone celular*',
-                      hintText: '(00) 00000-0000',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFC8C8C8),
-                      ),
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SvgPicture.asset(
-                          'assets/icons/phone.svg',
-                          colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Informe seu telefone';
-                      if (_phoneMask.getUnmaskedText().length != 11) return 'Telefone incompleto';
-                      if (_phoneError != null) return _phoneError;
-                      return null;
+                  Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus && _phoneMask.getUnmaskedText().length == 11) {
+                        _checkDuplicate(phone: _phoneController.text.trim());
+                      }
                     },
+                    child: TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [_phoneMask],
+                      decoration: InputDecoration(
+                        labelText: 'Telefone celular*',
+                        hintText: '(00) 00000-0000',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFFC8C8C8),
+                        ),
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SvgPicture.asset(
+                            'assets/icons/phone.svg',
+                            colorFilter: const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Informe seu telefone';
+                        if (_phoneMask.getUnmaskedText().length != 11) return 'Telefone incompleto';
+                        if (_phoneError != null) return _phoneError;
+                        return null;
+                      },
+                    ),
                   ),
                   const SizedBox(height: 24),
 

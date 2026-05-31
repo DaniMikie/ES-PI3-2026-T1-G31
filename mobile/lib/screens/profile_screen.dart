@@ -67,6 +67,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) {
         String? erro;
+        String? erroNovaSenha;
+        String? erroConfirmar;
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) => AlertDialog(
             title: const Text('Alterar senha'),
@@ -82,9 +84,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   TextField(controller: senhaAtualController, obscureText: true, decoration: const InputDecoration(labelText: 'Senha atual')),
                   const SizedBox(height: 12),
-                  TextField(controller: novaSenhaController, obscureText: true, decoration: const InputDecoration(labelText: 'Nova senha')),
+                  TextField(
+                    controller: novaSenhaController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Nova senha',
+                      errorText: erroNovaSenha,
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value.isNotEmpty && value.length < 6) {
+                          erroNovaSenha = 'Mínimo 6 caracteres';
+                        } else if (value.isNotEmpty && value == senhaAtualController.text) {
+                          erroNovaSenha = 'Deve ser diferente da atual';
+                        } else {
+                          erroNovaSenha = null;
+                        }
+                        // Atualiza erro do confirmar se já tem algo digitado
+                        if (confirmarSenhaController.text.isNotEmpty && confirmarSenhaController.text != value) {
+                          erroConfirmar = 'As senhas não coincidem';
+                        } else {
+                          erroConfirmar = null;
+                        }
+                      });
+                    },
+                  ),
                   const SizedBox(height: 12),
-                  TextField(controller: confirmarSenhaController, obscureText: true, decoration: const InputDecoration(labelText: 'Confirmar nova senha')),
+                  TextField(
+                    controller: confirmarSenhaController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar nova senha',
+                      errorText: erroConfirmar,
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value.isNotEmpty && value != novaSenhaController.text) {
+                          erroConfirmar = 'As senhas não coincidem';
+                        } else {
+                          erroConfirmar = null;
+                        }
+                      });
+                    },
+                  ),
                   const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () { Navigator.pop(dialogContext); _enviarEmailRedefinicao(); },
@@ -97,17 +139,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
               ElevatedButton(
                 onPressed: () async {
-                  if (novaSenhaController.text != confirmarSenhaController.text) { setDialogState(() => erro = 'As senhas nao coincidem'); return; }
-                  if (novaSenhaController.text.length < 6) { setDialogState(() => erro = 'A nova senha deve ter pelo menos 6 caracteres'); return; }
-                  if (novaSenhaController.text == senhaAtualController.text) { setDialogState(() => erro = 'A nova senha deve ser diferente da atual'); return; }
-                  Navigator.pop(dialogContext);
+                  // Validações finais antes de salvar
+                  if (senhaAtualController.text.isEmpty) { setDialogState(() => erro = 'Informe a senha atual'); return; }
+                  if (novaSenhaController.text.length < 6) { setDialogState(() => erroNovaSenha = 'Mínimo 6 caracteres'); return; }
+                  if (novaSenhaController.text == senhaAtualController.text) { setDialogState(() => erroNovaSenha = 'Deve ser diferente da atual'); return; }
+                  if (novaSenhaController.text != confirmarSenhaController.text) { setDialogState(() => erroConfirmar = 'As senhas não coincidem'); return; }
+
+                  // Tenta reautenticar — se a senha atual estiver errada, mostra erro no dialog
                   try {
                     final user = FirebaseAuth.instance.currentUser!;
                     await user.reauthenticateWithCredential(EmailAuthProvider.credential(email: user.email!, password: senhaAtualController.text));
                     await user.updatePassword(novaSenhaController.text);
+                    Navigator.pop(dialogContext);
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF2E7D32)));
                   } on FirebaseAuthException catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.code == 'wrong-password' ? 'Senha atual incorreta' : 'Erro ao alterar senha'), backgroundColor: Color(0xFFB30B0E)));
+                    if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+                      setDialogState(() => erro = 'Senha atual incorreta');
+                    } else {
+                      setDialogState(() => erro = 'Erro ao alterar senha');
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
