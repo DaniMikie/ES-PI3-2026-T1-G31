@@ -4,6 +4,10 @@
  *
  * Investidor anuncia tokens com preco que ele define.
  * Reserva os tokens (subtrai da posicao) ate alguem comprar ou ele cancelar.
+ * Usa transaction pra garantir que a reserva e a criação da oferta
+ * aconteçam juntas — se uma falhar, nenhuma acontece.
+ * NÃO registra como "sell" no histórico aqui — a venda só é registrada
+ * quando alguém aceita a oferta (acceptOffer).
  */
 
 import {onCall, HttpsError} from "firebase-functions/https";
@@ -11,7 +15,6 @@ import {FieldValue} from "firebase-admin/firestore";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
 import {getStartupById} from "../../startups/repositories/startupRepository";
-import {getTokenPosition, removeTokens, saveTransaction} from "../repositories/exchangeRepository";
 import {db} from "../../startups/shared/firebase";
 
 export const createOffer = onCall(async (request) => {
@@ -28,40 +31,50 @@ export const createOffer = onCall(async (request) => {
   const startup = await getStartupById(startupId);
   if (!startup) throw new HttpsError("not-found", "Startup nao encontrada.");
 
-  // Verifica se tem tokens suficientes
-  const position = await getTokenPosition(startupId, user.uid);
-  if (!position || position.quantity < quantity) {
-    throw new HttpsError("failed-precondition", "Tokens insuficientes para criar oferta.");
-  }
+  // Transaction: verifica tokens, reserva e cria oferta atomicamente
+  const offerId = await db.runTransaction(async (transaction) => {
+    // Verifica se tem tokens suficientes
+    const investorRef = db.collection("startups").doc(startupId).collection("investors").doc(user.uid);
+    const investorSnapshot = await transaction.get(investorRef);
 
-  // Reserva tokens (remove da posicao)
-  await removeTokens(startupId, user.uid, quantity);
+    if (!investorSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "Tokens insuficientes para criar oferta.");
+    }
 
-  // Cria oferta
-  const offerRef = await db.collection("offers").add({
-    sellerUid: user.uid,
-    sellerEmail: user.email ?? "",
-    startupId,
-    startupName: startup.name,
-    quantity,
-    priceCents,
-    status: "active",
-    createdAt: FieldValue.serverTimestamp(),
-  });
+    const currentQuantity = investorSnapshot.data()?.quantity ?? 0;
+    if (currentQuantity < quantity) {
+      throw new HttpsError("failed-precondition", "Tokens insuficientes para criar oferta.");
+    }
 
-  // Registra no historico como anuncio
-  await saveTransaction(user.uid, {
-    type: "sell",
-    startupId,
-    startupName: startup.name,
-    quantity,
-    priceCents,
-    totalCents: quantity * priceCents,
+    // Reserva tokens (subtrai da posição)
+    if (currentQuantity - quantity <= 0) {
+      transaction.delete(investorRef);
+    } else {
+      transaction.update(investorRef, {
+        quantity: FieldValue.increment(-quantity),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Cria oferta no mesmo transaction
+    const offerRef = db.collection("offers").doc();
+    transaction.set(offerRef, {
+      sellerUid: user.uid,
+      sellerEmail: user.email ?? "",
+      startupId,
+      startupName: startup.name,
+      quantity,
+      priceCents,
+      status: "active",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return offerRef.id;
   });
 
   return {
     data: {
-      offerId: offerRef.id,
+      offerId,
       startupId,
       quantity,
       priceCents,
