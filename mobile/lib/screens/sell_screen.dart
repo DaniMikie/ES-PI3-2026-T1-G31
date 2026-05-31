@@ -3,15 +3,29 @@
 - Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
 */
 
+/*
+  Tela de criação de anúncio de venda de tokens.
+
+  Funcionalidades:
+  - Exibição do saldo de tokens disponíveis do usuário para a startup selecionada
+  - Definição de quantidade e preço customizado por token
+  - Indicador em tempo real de variação percentual em relação ao preço de mercado
+  - Cálculo e exibição do valor total do anúncio conforme o usuário preenche os campos
+  - Validação de saldo e preço antes de publicar
+  - Confirmação do anúncio com autenticação por senha
+*/
+
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'startup_details_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+// Widget principal da tela de criação de anúncio de venda de tokens
 class SellScreen extends StatefulWidget {
   final String startupId;
   final String startupName;
+  // Preço de mercado atual do token, usado como referência e sugestão de preço
   final double tokenPrice;
   final int totalTokens;
   final String stage;
@@ -32,12 +46,18 @@ class SellScreen extends StatefulWidget {
 }
 
 class _SellScreenState extends State<SellScreen> {
+  // Quantidade de tokens que o usuário deseja anunciar
   int quantity = 0;
+  // Preço por token definido pelo vendedor (pode diferir do preço de mercado)
   double _customPrice = 0;
+  // Getter que calcula o valor total do anúncio com base na quantidade e no preço escolhido
   double get totalValue => quantity * _customPrice;
+  // Quantidade de tokens que o usuário possui para a startup em questão
   int _myTokens = 0;
+  // Controla o estado de carregamento da consulta de tokens do usuário
   bool _loadingTokens = true;
 
+  // Controllers dos campos de entrada de quantidade e preço
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
 
@@ -52,11 +72,13 @@ class _SellScreenState extends State<SellScreen> {
 
   @override
   void dispose() {
+    // Libera os controllers para evitar vazamento de memória
     _quantityController.dispose();
     _priceController.dispose();
     super.dispose();
   }
 
+  // Busca a carteira do usuário e extrai a quantidade de tokens disponíveis para a startup atual
   Future<void> _loadMyTokens() async {
     try {
       final callable = FirebaseFunctions.instance.httpsCallable('getWallet');
@@ -66,26 +88,32 @@ class _SellScreenState extends State<SellScreen> {
       final positions = List<Map<String, dynamic>>.from(
         (innerData['positions'] as List?)?.map((p) => Map<String, dynamic>.from(p as Map)) ?? [],
       );
+      // Filtra apenas a posição correspondente à startup sendo anunciada
       final pos = positions.where((p) => p['startupId'] == widget.startupId).toList();
       final rawQty = pos.isNotEmpty ? pos.first['quantity'] : 0;
       if (mounted) {
         setState(() {
+          // Garante compatibilidade com diferentes tipos numéricos retornados pelo backend
           _myTokens = rawQty is int ? rawQty : (rawQty is num ? rawQty.toInt() : 0);
           _loadingTokens = false;
         });
       }
     } catch (_) {
+      // Em caso de erro, apenas encerra o loading sem travar a interface
       if (mounted) setState(() => _loadingTokens = false);
     }
   }
 
+  // Formata um valor double em reais no padrão (R$ 0,00)
   String _formatMoney(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
 
   @override
   Widget build(BuildContext context) {
+    // Gera as iniciais da startup para exibir no avatar do card
     final logo = widget.startupName.length >= 2
         ? widget.startupName.substring(0, 2).toUpperCase()
         : 'S';
+    // O botão de publicar só é habilitado quando quantidade e preço forem válidos
     final bool canSell = quantity > 0 && _customPrice > 0;
 
     return Scaffold(
@@ -122,6 +150,7 @@ class _SellScreenState extends State<SellScreen> {
               ),
               child: Row(
                 children: [
+                  // Avatar com as iniciais da startup
                   Container(
                     width: 50, height: 50,
                     decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(12)),
@@ -130,6 +159,7 @@ class _SellScreenState extends State<SellScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      // Nome e primeira tag da startup
                       Text(widget.startupName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text(widget.tags.isNotEmpty ? widget.tags.first : '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ]),
@@ -140,6 +170,7 @@ class _SellScreenState extends State<SellScreen> {
             const SizedBox(height: 12),
 
             // Tokens disponíveis
+            // Exibe spinner enquanto carrega, depois mostra a quantidade de tokens do usuário
             _loadingTokens
                 ? const Text('Carregando...', style: TextStyle(color: Colors.grey, fontSize: 13))
                 : Text(
@@ -147,11 +178,13 @@ class _SellScreenState extends State<SellScreen> {
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                   ),
             const SizedBox(height: 4),
+            // Preço de mercado exibido como referência para o vendedor definir seu preço
             Text(
               'Preço de mercado atual: ${_formatMoney(widget.tokenPrice)}',
               style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const SizedBox(height: 6),
+            // Link para navegar até os detalhes da startup antes de criar o anúncio
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -165,11 +198,12 @@ class _SellScreenState extends State<SellScreen> {
             ),
             const SizedBox(height: 28),
 
-            // Quantidade───────────────────────────────────────────────
+            // Quantidade
             const Text('Quantidade de tokens', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             const Text('Quantos tokens deseja anunciar?', style: TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 10),
+            // Campo numérico que atualiza a quantidade do anúncio em tempo real
             TextField(
               controller: _quantityController,
               keyboardType: TextInputType.number,
@@ -185,13 +219,15 @@ class _SellScreenState extends State<SellScreen> {
                   borderSide: BorderSide(color: Color(0xFF2E7D32), width: 2),
                 ),
               ),
+              // Converte o texto para inteiro; usa 0 como fallback se o valor for inválido
               onChanged: (v) => setState(() => quantity = int.tryParse(v) ?? 0),
             ),
             const SizedBox(height: 20),
 
-            // Preço por token──────────────────────────────────────────
+            // Preço por token
             const Text('Seu preço por token', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
+            // Exibe o preço de mercado como sugestão ao lado do label
             Row(children: [
               const Text('Preço sugerido (mercado): ', style: TextStyle(color: Colors.grey, fontSize: 13)),
               Text(
@@ -200,6 +236,7 @@ class _SellScreenState extends State<SellScreen> {
               ),
             ]),
             const SizedBox(height: 10),
+            // Campo decimal que permite ao vendedor definir seu próprio preço por token
             TextField(
               controller: _priceController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -215,6 +252,7 @@ class _SellScreenState extends State<SellScreen> {
                 ),
               ),
               onChanged: (v) {
+                // Substitui vírgula por ponto para compatibilidade com double.tryParse
                 final parsed = double.tryParse(v.replaceAll(',', '.')) ?? 0;
                 setState(() => _customPrice = parsed);
               },
@@ -224,9 +262,11 @@ class _SellScreenState extends State<SellScreen> {
             if (_customPrice > 0 && widget.tokenPrice > 0) ...[
               const SizedBox(height: 8),
               Builder(builder: (context) {
+                // Calcula a diferença percentual entre o preço do vendedor e o preço de mercado
                 final diff = ((_customPrice - widget.tokenPrice) / widget.tokenPrice) * 100;
                 final isAbove = diff > 0;
                 final isBelow = diff < 0;
+                // Exibe ícone e texto indicando se o preço está acima, abaixo ou igual ao mercado
                 return Row(children: [
                   Icon(
                     isAbove ? Icons.trending_up : (isBelow ? Icons.trending_down : Icons.trending_flat),
@@ -253,6 +293,7 @@ class _SellScreenState extends State<SellScreen> {
             // Total do anúncio─────────────────────────────────────────
             const Text('Total do anúncio:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
+            // Exibe o valor total calculado em destaque para facilitar a revisão do vendedor
             Container(
               width: double.infinity, height: 60,
               decoration: BoxDecoration(
@@ -269,6 +310,7 @@ class _SellScreenState extends State<SellScreen> {
             const SizedBox(height: 12),
 
             // Info sobre como funciona
+            // Explica ao vendedor que os tokens só são transferidos após a aceitação da oferta
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -292,6 +334,7 @@ class _SellScreenState extends State<SellScreen> {
             ),
             const SizedBox(height: 30),
 
+            // Botão habilitado apenas quando quantidade e preço estão preenchidos corretamente
             SizedBox(
               width: double.infinity, height: 60,
               child: ElevatedButton(
@@ -310,7 +353,9 @@ class _SellScreenState extends State<SellScreen> {
     );
   }
 
+  // Valida os dados antes de abrir o dialog de autenticação para publicar o anúncio
   void _criarAnuncio() async {
+    // Impede o anúncio se a quantidade desejada exceder o saldo disponível do usuário
     if (_myTokens < quantity) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -322,6 +367,7 @@ class _SellScreenState extends State<SellScreen> {
       }
       return;
     }
+    // Impede o anúncio se o preço definido for zero ou negativo
     if (_customPrice <= 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -330,17 +376,23 @@ class _SellScreenState extends State<SellScreen> {
       }
       return;
     }
+    // Dados válidos: abre o dialog de confirmação com senha
     _showAuthDialog();
   }
 
+  // Exibe o dialog de confirmação do anúncio com reautenticação por senha
   void _showAuthDialog() {
     final senhaController = TextEditingController();
+    // Controla a visibilidade da senha no campo de texto
     bool senhaVisivel = false;
     showDialog(
       context: context,
       builder: (dialogContext) {
+        // Mensagem de erro exibida dentro do dialog
         String? erro;
+        // Controla o estado de loading do botão de publicar
         bool loading = false;
+        // StatefulBuilder permite atualizar o estado interno do dialog isoladamente
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) => Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -365,8 +417,10 @@ class _SellScreenState extends State<SellScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Nome da startup do anúncio
                         Text(widget.startupName, style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
+                        // Detalhes do anúncio: quantidade, preço unitário e valor total
                         Text('$quantity tokens × ${_formatMoney(_customPrice)}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                         Text('Total: ${_formatMoney(totalValue)}', style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
                       ],
@@ -375,6 +429,7 @@ class _SellScreenState extends State<SellScreen> {
 
                   const Text('Digite sua senha para publicar', style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 16),
+                  // Exibe o container de erro apenas se houver mensagem de erro
                   if (erro != null)
                     Container(
                       width: double.infinity,
@@ -383,6 +438,7 @@ class _SellScreenState extends State<SellScreen> {
                       decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
                       child: Text(erro!, style: const TextStyle(color: Color(0xFFB30B0E), fontSize: 13)),
                     ),
+                  // Campo de senha com toggle de visibilidade e ícones SVG customizados
                   TextField(
                     controller: senhaController,
                     obscureText: !senhaVisivel,
@@ -399,6 +455,7 @@ class _SellScreenState extends State<SellScreen> {
                           height: 24,
                         ),
                       ),
+                      // Botão para alternar entre mostrar e ocultar a senha
                       suffixIcon: IconButton(
                         icon: SvgPicture.asset(
                           senhaVisivel
@@ -428,6 +485,7 @@ class _SellScreenState extends State<SellScreen> {
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
+                      // Desabilita o botão enquanto a requisição está em andamento
                       onPressed: loading ? null : () async {
                         if (senhaController.text.isEmpty) {
                           setDialogState(() => erro = 'Informe sua senha');
@@ -435,6 +493,7 @@ class _SellScreenState extends State<SellScreen> {
                         }
                         setDialogState(() { loading = true; erro = null; });
                         try {
+                          // Reautentica o usuário antes de executar a operação financeira
                           final user = FirebaseAuth.instance.currentUser!;
                           await user.reauthenticateWithCredential(
                             EmailAuthProvider.credential(email: user.email!, password: senhaController.text),
@@ -446,6 +505,7 @@ class _SellScreenState extends State<SellScreen> {
                             // Envia em centavos para o backend (padrão do projeto)
                             'priceCents': (_customPrice * 100).round(),
                           });
+                          // Fecha o dialog e exibe confirmação de sucesso na tela anterior
                           if (dialogContext.mounted) Navigator.pop(dialogContext);
                           await Future.delayed(const Duration(milliseconds: 100));
                           if (mounted) {
@@ -458,13 +518,17 @@ class _SellScreenState extends State<SellScreen> {
                             Navigator.pop(context);
                           }
                         } on FirebaseAuthException catch (_) {
+                          // Senha incorreta: exibe o erro sem fechar o dialog
                           setDialogState(() { erro = 'Senha incorreta'; loading = false; });
                         } on FirebaseFunctionsException catch (e) {
+                          // Exibe a mensagem de erro retornada pela Cloud Function
                           setDialogState(() { erro = e.message ?? 'Erro ao publicar anúncio'; loading = false; });
                         } catch (_) {
+                          // Captura erros inesperados sem travar a interface
                           setDialogState(() { erro = 'Erro inesperado'; loading = false; });
                         }
                       },
+                      // Exibe spinner durante o processamento ou o texto do botão quando disponível
                       child: loading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Text('Publicar', style: TextStyle(color: Colors.white, fontSize: 16)),
