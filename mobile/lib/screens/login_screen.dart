@@ -1,6 +1,6 @@
 /*
 ---------- Tela de Login ----------
-- Alterações Gerais/Design: Felipe Nasser Coelho Moussa | RA: 25004922
+- Autor Principal: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 
 import 'package:flutter/material.dart';
@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   try {
                     final callable = FirebaseFunctions.instance.httpsCallable('verifyTotp');
                     await callable.call({'code': codeController.text.trim(), 'action': 'login'});
-                    Navigator.pop(dialogContext);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
                     if (mounted) {
                       Navigator.pushAndRemoveUntil(
                         context,
@@ -228,8 +228,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Informe seu e-mail';
+                      }
                       if (!value.contains('@')) return 'E-mail inválido';
                       return null;
                     },
@@ -272,8 +273,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Informe sua senha';
+                      }
                       return null;
                     },
                   ),

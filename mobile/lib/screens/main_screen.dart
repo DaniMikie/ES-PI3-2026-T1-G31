@@ -11,14 +11,21 @@ import 'market_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _indexAtual = 0;
+  late int _indexAtual = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _indexAtual = widget.initialIndex;
+  }
 
   // Telas em ordem
   final List<Widget> _telas = const [

@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Balcão ----------
 - Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
-- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 
 import 'package:flutter/material.dart';
@@ -438,7 +437,7 @@ class _MarketScreenState extends State<MarketScreen> {
       onRefresh: _loadData,
       child: ListView.separated(
         itemCount: lista.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 15),
+        separatorBuilder: (_, _) => const SizedBox(height: 15),
         itemBuilder: (context, index) {
           final s = lista[index];
           final name = s['name'] as String? ?? '';
@@ -526,7 +525,7 @@ class _MarketScreenState extends State<MarketScreen> {
                               ),
                             ),
                             if (_mode == MarketMode.buy || _mode == MarketMode.sell)
-                              Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withOpacity(0.7)),
+                              Icon(Icons.arrow_forward_ios, size: 12, color: const Color(0xFF2E7D32).withValues(alpha: 0.7)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -584,7 +583,7 @@ class _MarketScreenState extends State<MarketScreen> {
       onRefresh: _loadMyOffers,
       child: ListView.separated(
         itemCount: _myOffers.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final offer = _myOffers[index];
           final offerId = offer['id'] as String? ?? '';
@@ -663,7 +662,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: status == 'sold' ? const Color(0xFF2E7D32).withOpacity(0.1) : Colors.grey.shade100,
+                      color: status == 'sold' ? const Color(0xFF2E7D32).withValues(alpha: 0.1) : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

@@ -460,6 +460,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         });
 
                         try {
+                          final navigator = Navigator.of(dialogContext);
                           // 3. Reautentica o usuário com email + senha
                           //    (garante que quem está sacando é o dono da conta)
                           final currentUser =
@@ -479,7 +480,6 @@ class _WalletScreenState extends State<WalletScreen> {
                               .reauthenticateWithCredential(credential);
 
                           // 4. Chama a Cloud Function withdrawCredits
-                          final navigator = Navigator.of(dialogContext);
                           final callable =
                               _functions.httpsCallable('withdrawCredits');
                           await callable.call({
