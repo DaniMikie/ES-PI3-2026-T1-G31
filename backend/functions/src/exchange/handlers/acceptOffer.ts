@@ -3,6 +3,8 @@
  * Autor: Daniela Mikie Kikuchi Goncalves | RA: 25003068
  *
  * Transfere tokens do vendedor pro comprador e dinheiro do comprador pro vendedor.
+ * Usa transaction do Firestore pra garantir que dois compradores nao aceitem
+ * a mesma oferta ao mesmo tempo (race condition).
  */
 
 import {onCall, HttpsError} from "firebase-functions/https";
@@ -10,7 +12,7 @@ import * as logger from "firebase-functions/logger";
 import {FieldValue} from "firebase-admin/firestore";
 import {requireAuthenticatedUser} from "../../startups/shared/auth";
 import {normalizeString} from "../../startups/shared/validation";
-import {getBalance, updateBalance, addTokens, saveTransaction, recalculateTokenPrice} from "../repositories/exchangeRepository";
+import {addTokens, saveTransaction, recalculateTokenPrice} from "../repositories/exchangeRepository";
 import {db} from "../../startups/shared/firebase";
 
 export const acceptOffer = onCall(async (request) => {
@@ -19,43 +21,62 @@ export const acceptOffer = onCall(async (request) => {
   const offerId = normalizeString(request.data?.offerId);
   if (!offerId) throw new HttpsError("invalid-argument", "Informe offerId.");
 
-  // Busca oferta
-  const offerRef = db.collection("offers").doc(offerId);
-  const offerSnapshot = await offerRef.get();
+  // Usa transaction pra garantir atomicidade:
+  // - Lê a oferta e o saldo do comprador
+  // - Verifica se a oferta ainda está ativa
+  // - Debita comprador, credita vendedor, marca oferta como vendida
+  // Se outro usuário tentar aceitar ao mesmo tempo, o Firestore rejeita
+  const result = await db.runTransaction(async (transaction) => {
+    const offerRef = db.collection("offers").doc(offerId);
+    const offerSnapshot = await transaction.get(offerRef);
 
-  if (!offerSnapshot.exists) throw new HttpsError("not-found", "Oferta nao encontrada.");
+    if (!offerSnapshot.exists) throw new HttpsError("not-found", "Oferta nao encontrada.");
 
-  const offer = offerSnapshot.data()!;
+    const offer = offerSnapshot.data()!;
 
-  if (offer.status !== "active") throw new HttpsError("failed-precondition", "Oferta nao esta mais disponivel.");
-  if (offer.sellerUid === user.uid) throw new HttpsError("invalid-argument", "Nao pode comprar sua propria oferta.");
+    if (offer.status !== "active") throw new HttpsError("failed-precondition", "Oferta nao esta mais disponivel.");
+    if (offer.sellerUid === user.uid) throw new HttpsError("invalid-argument", "Nao pode comprar sua propria oferta.");
 
-  const totalCents = offer.quantity * offer.priceCents;
+    const totalCents = offer.quantity * offer.priceCents;
 
-  // Verifica saldo do comprador
-  const balance = await getBalance(user.uid);
-  if (balance < totalCents) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Saldo insuficiente. Necessario: R$${(totalCents / 100).toFixed(2)}, disponivel: R$${(balance / 100).toFixed(2)}.`
-    );
-  }
+    // Verifica saldo do comprador dentro da transaction
+    const buyerRef = db.collection("users").doc(user.uid);
+    const buyerSnapshot = await transaction.get(buyerRef);
+    const balance = buyerSnapshot.data()?.balanceCents ?? 0;
 
-  // Debita comprador
-  await updateBalance(user.uid, -totalCents);
+    if (balance < totalCents) {
+      throw new HttpsError(
+        "failed-precondition",
+        `Saldo insuficiente. Necessario: R${(totalCents / 100).toFixed(2)}, disponivel: R${(balance / 100).toFixed(2)}.`
+      );
+    }
 
-  // Credita vendedor
-  await updateBalance(offer.sellerUid, totalCents);
+    // Debita comprador
+    transaction.update(buyerRef, {
+      balanceCents: FieldValue.increment(-totalCents),
+    });
+
+    // Credita vendedor
+    const sellerRef = db.collection("users").doc(offer.sellerUid);
+    transaction.update(sellerRef, {
+      balanceCents: FieldValue.increment(totalCents),
+    });
+
+    // Marca oferta como vendida
+    transaction.update(offerRef, {
+      status: "sold",
+      buyerUid: user.uid,
+      soldAt: FieldValue.serverTimestamp(),
+    });
+
+    return {offer, totalCents};
+  });
+
+  // Operações fora da transaction (não precisam ser atômicas)
+  const {offer, totalCents} = result;
 
   // Transfere tokens pro comprador
   await addTokens(offer.startupId, user.uid, offer.quantity, totalCents);
-
-  // Marca oferta como vendida
-  await offerRef.update({
-    status: "sold",
-    buyerUid: user.uid,
-    soldAt: FieldValue.serverTimestamp(),
-  });
 
   // Salva transacao pra comprador
   await saveTransaction(user.uid, {
