@@ -23,16 +23,19 @@ A aplicação simula uma plataforma digital de investimento em **startups vincul
 * **Carteira simulada** com saldo fictício, adição de crédito e saque
 * **Compra de tokens** com validação de saldo, limite de emissão e registro de transação
 * **Venda de tokens** com re-autenticação por senha
-* **Balcão de ofertas** — anunciar tokens com preço customizado, listar e aceitar ofertas de outros investidores
+* **Balcão de ofertas** — anunciar tokens com preço customizado, listar e aceitar ofertas de outros investidores (com proteção contra race condition via Firestore transactions)
 * **Meus anúncios** — visualizar ofertas criadas, status e opção de cancelar
 * **Lógica de valorização** — preço do token recalculado automaticamente (média ponderada)
-* **Dashboard com gráfico de linhas** — variação de preço por período (dia/semana/mês/6M/YTD)
+* **Dashboard com gráfico de patrimônio** — evolução do valor total dos tokens ao longo do tempo (pontos verdes = compra, vermelhos = venda)
+* **Gráfico de variação por startup** — multi-linha com lucro/prejuízo em R$ e % por investimento
+* **Resultado total** — exibe lucro ou prejuízo consolidado de todos os investimentos
+* **Gráfico de valorização na startup** — cor dinâmica (verde se valorizou, vermelho se desvalorizou, cinza se estável)
 * **Variação percentual** por investimento (preço de compra vs preço atual)
 * **Tokens disponíveis** — controle de emissão (total emitido - vendidos)
 * **Capital captado** — atualizado automaticamente a cada compra
 * **Histórico de transações** paginado com "Ver mais"
-* **Validação de CPF e telefone** duplicado no cadastro
-* **Testes unitários** com Jest (34 testes)
+* **Validação de CPF e telefone** duplicado no cadastro (com rollback do Authentication em caso de falha)
+* **Testes unitários** com Jest (51 testes)
 
 ---
 
@@ -90,7 +93,7 @@ Flutter (app) → Cloud Function (handler) → Repository → Firestore
 | `createStartupQuestion` | Cria pergunta pública ou privada |
 | `seedStartupCatalog` | Popula o banco com dados de demonstração |
 
-### Módulo Exchange (12)
+### Módulo Exchange (13)
 
 | Function | Descrição |
 |----------|-----------|
@@ -98,14 +101,15 @@ Flutter (app) → Cloud Function (handler) → Repository → Firestore
 | `getWallet` | Retorna saldo, posições e preço atual dos tokens |
 | `buyTokens` | Compra tokens (valida saldo, limite de emissão, atualiza capital) |
 | `sellTokens` | Venda direta de tokens pelo preço atual |
-| `createOffer` | Cria oferta no balcão com preço customizado |
+| `createOffer` | Cria oferta no balcão com preço customizado (transaction atômica) |
 | `listOffers` | Lista ofertas ativas de uma startup |
 | `listMyOffers` | Lista ofertas do próprio usuário |
-| `acceptOffer` | Aceita oferta (debita comprador, credita vendedor) |
+| `acceptOffer` | Aceita oferta com transaction (evita race condition) |
 | `cancelOffer` | Cancela oferta e devolve tokens |
 | `listTransactions` | Retorna histórico de transações |
-| `getTokenHistory` | Histórico de preço para gráfico da carteira |
-| `getStartupTokenHistory` | Histórico de preço para gráfico da startup |
+| `getTokenHistory` | Histórico de patrimônio acumulado para gráfico da carteira |
+| `getStartupTokenHistory` | Histórico de preço para gráfico da startup (com preço atual) |
+| `getPortfolioHistory` | Variação % por startup para gráfico multi-linha |
 
 ### Módulo Users (9)
 
@@ -175,6 +179,7 @@ Requer emulador Android (Android Studio) ou dispositivo físico conectado via US
 ### Firestore
 * Coleção `startups` — 5 startups cadastradas (GreenPulse, MedConnect, AgroSmart, EduFlex, FinToken)
 * Subcoleção `startups/{id}/questions` — perguntas dos usuários
+* Subcoleção `startups/{id}/priceHistory` — snapshots de preço para gráficos
 * Subcoleção `startups/{id}/investors` — posição de tokens dos investidores
 * Subcoleção `startups/{id}/updates` — atualizações e eventos
 * Coleção `users` — dados dos usuários (nome, CPF, telefone, saldo, TOTP)
