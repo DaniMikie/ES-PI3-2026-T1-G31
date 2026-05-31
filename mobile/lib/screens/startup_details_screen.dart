@@ -1,9 +1,7 @@
 /*
 ---------- Tela de Detalhes da Startup -----------
-- Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
 - Ajustes Gerais: Rafaela Jacobsen | RA: 25004280
 - Modificações de Design/Funções Adicionais: Felipe Nasser Coelho Moussa | RA: 25004922
-- Gráfico de valorização com cor dinâmica (verde/vermelho/cinza) conforme variação no período — Daniela Mikie | RA: 25003068
 */
 
 import 'package:flutter/material.dart';

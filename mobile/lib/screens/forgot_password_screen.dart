@@ -1,7 +1,12 @@
 /*
 ---------- Tela de Recuperação de Senha ----------
 - Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+
+Fluxo:
+1. Usuário digita o e-mail cadastrado
+2. Firebase Auth envia um link de redefinição de senha pro e-mail
+3. Se o e-mail não existe no sistema, mostra erro "E-mail não cadastrado"
+4. Se enviou com sucesso, mostra SnackBar confirmando
 */
 
 import 'package:flutter/material.dart';
@@ -24,6 +29,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  // Envia e-mail de recuperação de senha via Firebase Auth
+  // O Firebase gera um link único que permite o usuário criar uma nova senha
   void _sendRecEmail() async {
     if (_formKey.currentState!.validate()) {
       try {

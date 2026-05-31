@@ -1,9 +1,26 @@
 /*
 ----------- Tela de Carteira ----------
 - Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-- Ajustes Gerais: Ana Luísa Maso Mafra | RA: 25007997
-- Ajustes Gerais: Rafaela Jacobsen Braga | RA: 25004280
-- Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
+
+Funcionalidades:
+1. Exibe saldo em R$ (simulado) e patrimônio total em tokens
+2. Gráfico de patrimônio acumulado (CustomPaint _LineChartPainter):
+   - Mostra evolução do valor total dos tokens ao longo do tempo
+   - Pontos verdes = compras, pontos vermelhos = vendas
+   - Eixo Y: valor em R$, Eixo X: horários/datas
+3. Gráfico de variação por startup (CustomPaint _MultiLineChartPainter):
+   - Uma linha por startup com cor diferente
+   - Mostra variação % em relação ao preço médio de compra
+   - Labels de % posicionados ao lado direito na altura da linha
+   - Resultado total em R$ (lucro/prejuízo) acima do gráfico
+   - Legenda com lucro individual por startup
+4. Lista de investimentos (startups que o usuário possui tokens)
+5. Histórico de transações (compras, vendas, créditos)
+
+Cloud Functions consumidas:
+- getWallet: saldo, investimentos, transações
+- getTokenHistory: dados pro gráfico de patrimônio
+- getPortfolioHistory: dados pro gráfico de variação por startup
 */
 
 import 'package:cloud_functions/cloud_functions.dart';

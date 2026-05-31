@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Balcão ----------
 - Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
-- Integração: Daniela Mikie Kikuchi Goncalves | RA: 25003068
 - Alterações de Design: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 

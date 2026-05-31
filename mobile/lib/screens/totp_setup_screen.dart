@@ -1,7 +1,19 @@
 /*
 ---------- Tela de Configuração de TOTP (2FA) ----------
 - Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
-- Mostra QR code para escanear no Google Authenticator e campo para digitar o código de verificação: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+
+Fluxo de ativação do 2FA (autenticação de dois fatores):
+1. Ao abrir a tela, chama Cloud Function "enableTotp" que gera um segredo TOTP
+2. O segredo é retornado como URL otpauth:// (padrão do Google Authenticator)
+3. Exibe QR Code com essa URL pra o usuário escanear no app autenticador
+4. Também mostra o segredo em texto (pra quem não consegue escanear)
+5. Usuário digita o código de 6 dígitos gerado pelo app autenticador
+6. Cloud Function "verifyTotp" valida o código com action "activate"
+7. Se válido, 2FA fica ativo — próximos logins vão pedir o código
+
+Tecnologias:
+- qr_flutter: gera o QR Code a partir da URL otpauth://
+- Cloud Functions: enableTotp (gera segredo) e verifyTotp (valida código)
 */
 
 import 'package:flutter/material.dart';
@@ -37,6 +49,9 @@ class _TotpSetupScreenState extends State<TotpSetupScreen> {
     super.dispose();
   }
 
+  // Gera o segredo TOTP no backend e recebe a URL pro QR Code
+  // A Cloud Function "enableTotp" cria um segredo único pro usuário
+  // e retorna a URL no formato otpauth://totp/... que o Google Authenticator entende
   Future<void> _generateSecret() async {
     try {
       final callable = _functions.httpsCallable('enableTotp');
@@ -61,6 +76,9 @@ class _TotpSetupScreenState extends State<TotpSetupScreen> {
     }
   }
 
+  // Verifica o código de 6 dígitos digitado pelo usuário
+  // Envia pra Cloud Function "verifyTotp" com action "activate"
+  // Se o código bater com o segredo gerado, ativa o 2FA permanentemente
   Future<void> _verifyCode() async {
     final code = _codeController.text.trim();
     if (code.length != 6) {

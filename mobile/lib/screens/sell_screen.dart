@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Venda de Tokens ----------
 - Autora Principal: Ana Luisa Maso Mafra | RA: 25007997
-- Integração: Daniela Mikie Kikuchi Goncalves | RA: 25003068
 */
 
 import 'package:flutter/material.dart';

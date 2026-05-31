@@ -1,6 +1,5 @@
 /*
 ---------- Tela de Login ----------
-- Autor Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
 - Alterações Gerais/Design: Felipe Nasser Coelho Moussa | RA: 25004922
 */
 

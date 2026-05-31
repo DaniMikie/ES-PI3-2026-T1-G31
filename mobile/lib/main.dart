@@ -1,7 +1,6 @@
 /*
 ---------- Main (Ponto de Execução e Configuração do App) ----------
 - Autor Principal: Felipe Nasser Coelho Moussa | RA: 25004922
-- Conexão do flutter com firebase: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
 */
 
 import 'package:flutter/material.dart';

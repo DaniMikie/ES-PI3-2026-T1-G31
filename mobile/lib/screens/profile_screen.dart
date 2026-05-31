@@ -1,7 +1,6 @@
 /*
 ---------- Tela de Perfil do Usuário ----------
 - Autora Principal: Rafaela Jacobsen Braga | RA: 25004280
-- Colaboradora/Correções: Daniela Mikie Kikuchi Goncalves | RA: 25003068
 - Ajustes Gerais: Ana Luísa Maso Mafra | RA: 25007997
 */
 

@@ -1,6 +1,19 @@
 /*
 ---------- Tela de Criar Conta ----------
 - Autora Principal: Daniela Mikie Kikuchi Gonçalves | RA: 25003068
+
+Fluxo de cadastro:
+1. Usuário preenche: nome, e-mail, CPF, telefone, senha e confirmação
+2. Validações locais: CPF válido (algoritmo de dígitos verificadores),
+   telefone com 11 dígitos, senhas iguais, e-mail no formato correto
+3. Firebase Auth cria a conta (createUserWithEmailAndPassword)
+4. Envia e-mail de verificação (necessário pra ativar 2FA depois)
+5. Cloud Function "createUser" salva dados extras no Firestore (CPF, telefone)
+6. Se CPF ou telefone já existem no banco, mostra erro específico
+
+Máscaras de input:
+- CPF: ###.###.###-## (MaskTextInputFormatter)
+- Telefone: (##) #####-#### (MaskTextInputFormatter)
 */
 
 import 'package:flutter/material.dart';
@@ -52,6 +65,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Validação de CPF usando algoritmo oficial dos dígitos verificadores
+  // O CPF tem 11 dígitos: 9 dígitos base + 2 dígitos verificadores
+  // Cada dígito verificador é calculado com uma soma ponderada dos anteriores
+  // Se os dígitos calculados batem com os informados, o CPF é válido
   bool _isValidCpf(String cpf) {
     if (cpf.length != 11) return false;
     // Rejeita CPFs com todos os dígitos iguais
@@ -78,6 +95,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return true;
   }
 
+  // Função principal de cadastro
+  // 1. Limpa erros anteriores
+  // 2. Valida formulário (campos obrigatórios, CPF, senhas iguais)
+  // 3. Cria conta no Firebase Auth
+  // 4. Envia e-mail de verificação
+  // 5. Salva dados extras (CPF, telefone) via Cloud Function
+  // 6. Trata erros específicos (e-mail duplicado, CPF duplicado, etc.)
   void _register() async {
     setState(() { _formError = null; _cpfError = null; _phoneError = null; _emailError = null; });
     if (_formKey.currentState!.validate()) {
